@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'ir.anbar.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'ir.anbar.app'
+        minSdk 26
+        targetSdk 34
+        versionCode((System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger())
+        versionName "1.0." + (System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+    }
+
+    // کلید ثابت، تا نسخه‌های بعدی روی نسخه‌ی قبلی نصب شوند و اطلاعات پاک نشود
+    signingConfigs {
+        shop {
+            storeFile file('anbar.keystore')
+            storePassword 'anbar123'
+            keyAlias 'anbar'
+            keyPassword 'anbar123'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.shop
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.shop
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+}

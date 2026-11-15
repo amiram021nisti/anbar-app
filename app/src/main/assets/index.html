@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>انبار مغازه</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f0e8;--card:#fffdf8;--ink:#1d2320;--mut:#6c736e;--line:#e3ddd0;--pri:#1d6b58;--pri2:#e1efe9;--red:#bb3a2c;--red2:#f9e4e0;--amb:#a86d14;--amb2:#fbefd9;--sh:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.04)}
+@media (prefers-color-scheme:dark){:root{--bg:#121514;--card:#1b1f1d;--ink:#eaeeeb;--mut:#97a19b;--line:#2b312e;--pri:#53b898;--pri2:#1c3830;--red:#ee7466;--red2:#3a2320;--amb:#e3ab52;--amb2:#382d1b;--sh:none}}
+[hidden]{display:none!important}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:15px}
+body{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(14px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-size:21px;margin:0;font-weight:800;letter-spacing:-.3px}
+h1 small{display:block;font-size:12px;font-weight:500;color:var(--mut);margin-top:2px}
+.pill{font-size:11.5px;padding:5px 10px;border-radius:99px;background:var(--pri2);color:var(--pri);white-space:nowrap}
+.pill.warn{background:var(--amb2);color:var(--amb)}
+.pill.bad{background:var(--red2);color:var(--red)}
+main{max-width:720px;margin:0 auto;padding:0 14px}
+section{display:none}section.on{display:block}
+.search{display:flex;gap:8px;margin:4px 0 10px}
+.inp{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;outline:none}
+.inp:focus{border-color:var(--pri)}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:8px 13px;font-size:13px;white-space:nowrap;cursor:pointer}
+.chip.on{background:var(--red2);border-color:transparent;color:var(--red)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh)}
+.prod{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;margin-bottom:8px;cursor:pointer;gap:10px}
+.prod .nm{font-weight:700;font-size:15.5px}
+.prod .meta{font-size:12.5px;color:var(--mut);margin-top:3px}
+.prod .pr{font-size:12.5px;color:var(--mut);margin-top:5px}
+.prod .pr b{color:var(--ink);font-weight:600}
+.qty{text-align:center;min-width:64px;padding:7px 8px;border-radius:12px;background:var(--pri2);color:var(--pri)}
+.qty b{display:block;font-size:19px;font-weight:800;line-height:1.1}
+.qty span{font-size:11px}
+.qty.low{background:var(--red2);color:var(--red)}
+.empty{text-align:center;color:var(--mut);padding:44px 18px;line-height:1.9}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.fab{position:fixed;left:18px;bottom:calc(92px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:18px;border:0;background:var(--pri);color:#fff;font-size:30px;box-shadow:0 6px 18px rgba(0,0,0,.2);cursor:pointer;z-index:6}
+nav{position:fixed;bottom:0;right:0;left:0;z-index:8;background:var(--card);border-top:1px solid var(--line);display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+nav button{flex:1;border:0;background:none;padding:6px 0;font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border-radius:12px}
+nav button svg{width:23px;height:23px}
+nav button.on{color:var(--pri);font-weight:700}
+.lbl{font-size:13px;color:var(--mut);margin:12px 2px 6px;display:block}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:none;border-radius:10px;padding:10px;cursor:pointer;font-weight:600;color:var(--mut)}
+.seg button.on.out{background:var(--amb2);color:var(--amb)}
+.seg button.on.in{background:var(--pri2);color:var(--pri)}
+.row{display:flex;gap:10px}.row>*{flex:1;min-width:0}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:46px;height:46px;flex:none;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:22px;cursor:pointer}
+.stepper .inp{text-align:center;font-weight:700;font-size:17px}
+.sugg{margin-top:6px;overflow:hidden}
+.sugg div{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+.sugg div:last-child{border:0}
+.sugg small{color:var(--mut)}
+.picked{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;gap:8px}
+.picked b{font-size:16px}
+.picked small{display:block;color:var(--mut);margin-top:2px}
+.x{border:0;background:var(--bg);width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:16px;color:var(--mut);flex:none}
+.big{width:100%;border:0;border-radius:14px;padding:15px;font-weight:800;font-size:16px;background:var(--pri);color:#fff;cursor:pointer;margin-top:14px}
+.big.out{background:var(--amb)}
+.big:disabled{opacity:.45}
+.total{display:flex;justify-content:space-between;margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--card);border:1px dashed var(--line);font-size:14px}
+.total b{font-size:17px}
+h2{font-size:15px;margin:24px 2px 8px;font-weight:700}
+.day{font-size:12.5px;color:var(--mut);margin:14px 4px 6px;font-weight:600}
+.mv{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.mv:last-child{border:0}
+.mv .tag{font-size:11px;padding:3px 8px;border-radius:8px;flex:none}
+.tag.out{background:var(--amb2);color:var(--amb)}.tag.in{background:var(--pri2);color:var(--pri)}.tag.adj{background:var(--bg);color:var(--mut)}
+.mv .info{flex:1;min-width:0}
+.mv .info b{font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv .info small{color:var(--mut);font-size:12px}
+.mv .amt{text-align:left;font-size:13px;white-space:nowrap}
+.mv .amt small{display:block;color:var(--pri);font-size:11.5px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:6px}
+.stat{padding:13px 14px}
+.stat small{color:var(--mut);font-size:12px;display:block}
+.stat b{font-size:19px;font-weight:800;display:block;margin-top:4px}
+.stat.hi{background:var(--pri);border-color:var(--pri);color:#fff}
+.stat.hi small{color:rgba(255,255,255,.8)}
+.stat .u{font-size:11px;font-weight:500;opacity:.7}
+.btn2{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 14px;cursor:pointer;font-weight:600;width:100%;margin-top:8px}
+.note{font-size:12px;color:var(--mut);line-height:1.8;margin:14px 4px}
+/* sheet */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20;display:none;align-items:flex-end;justify-content:center}
+.ov.on{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:720px;border-radius:22px 22px 0 0;padding:8px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+.grab{width:42px;height:5px;border-radius:9px;background:var(--line);margin:4px auto 10px}
+.sheet h3{margin:4px 2px 4px;font-size:18px}
+.sheet .acts{display:flex;gap:8px;margin-top:16px}
+.sheet .acts button{flex:1;margin:0}
+.danger{color:var(--red)!important}
+.dlg{background:var(--card);border-radius:18px;padding:18px;width:min(92vw,380px);margin:auto;line-height:1.8}
+.dlg .acts{display:flex;gap:8px;margin-top:14px}
+.dlg .acts button{flex:1}
+#toast{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;z-index:30;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1;transform:translateX(-50%)}
+
+.scan{flex:none;width:48px;border:1px solid var(--line);background:var(--card);border-radius:12px;display:grid;place-items:center;cursor:pointer;color:var(--pri)}
+.scan svg{width:24px;height:24px}
+.fld{display:flex;gap:6px}
+textarea.inp{min-height:160px;direction:ltr;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>انبار مغازه<small id="today"></small></h1>
+  <span class="pill warn" id="mode">در حال اتصال…</span>
+</header>
+
+<main>
+  <!-- کالاها -->
+  <section id="t-prod" class="on">
+    <div class="search">
+      <input class="inp" id="q" placeholder="جستجوی نام، کد یا دسته…" autocomplete="off">
+      <button class="scan" id="scanQ" aria-label="اسکن بارکد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg></button>
+      <button class="chip" id="lowBtn">رو به اتمام</button>
+    </div>
+    <div id="plist"></div>
+  </section>
+
+  <!-- فروش / ورود -->
+  <section id="t-move">
+    <div class="seg" id="kind">
+      <button data-k="out" class="on out">فروش</button>
+      <button data-k="in" class="in">خرید / ورود به انبار</button>
+    </div>
+    <span class="lbl">کالا</span>
+    <div id="pickWrap">
+      <div class="fld"><input class="inp" id="pq" placeholder="نام یا کد کالا را بنویسید…" autocomplete="off"><button class="scan" id="scanS" aria-label="اسکن بارکد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg></button></div>
+      <div class="card sugg" id="sugg" hidden></div>
+    </div>
+    <div class="card picked" id="picked" hidden></div>
+    <div class="row">
+      <div><span class="lbl">تعداد / مقدار</span>
+        <div class="stepper"><button id="plus">+</button><input class="inp" id="mq" inputmode="decimal" value="۱"><button id="minus">−</button></div>
+      </div>
+    </div>
+    <div class="row">
+      <div><span class="lbl">قیمت واحد (تومان)</span><input class="inp money" id="mp" inputmode="numeric"></div>
+    </div>
+    <span class="lbl">توضیحات (اختیاری)</span>
+    <input class="inp" id="mn" placeholder="مثلاً نام مشتری یا فروشنده">
+    <div class="total"><span>جمع کل</span><b id="mt">۰ تومان</b></div>
+    <button class="big out" id="mSave" disabled>ثبت فروش</button>
+    <h2>تراکنش‌های اخیر</h2>
+    <div id="mlist"></div>
+  </section>
+
+  <!-- گزارش -->
+  <section id="t-rep">
+    <div class="stats" id="stats"></div>
+    <h2>باید سفارش داده شوند</h2>
+    <div id="lowlist"></div>
+    <h2>خروجی</h2>
+    <button class="btn2" id="csvP">کپی لیست کالاها برای اکسل</button>
+    <button class="btn2" id="csvM">کپی تراکنش‌ها برای اکسل</button>
+    <div id="appOnly" hidden>
+      <h2>پشتیبان‌گیری</h2>
+      <button class="btn2" id="bkBtn">ارسال فایل پشتیبان (تلگرام، واتساپ، ایمیل…)</button>
+      <button class="btn2" id="rsBtn">بازگردانی از فایل پشتیبان</button>
+    </div>
+    <p class="note" id="where"></p>
+  </section>
+</main>
+
+<button class="fab" id="fab" aria-label="کالای جدید">+</button>
+
+<nav>
+  <button data-t="t-rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>گزارش</button>
+  <button data-t="t-move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-3-3M17 17H4l3 3"/></svg>فروش / ورود</button>
+  <button data-t="t-prod" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></svg>کالاها</button>
+</nav>
+
+<!-- فرم کالا -->
+<div class="ov" id="pov">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3 id="pTitle">کالای جدید</h3>
+    <span class="lbl">نام کالا *</span><input class="inp" id="f-name">
+    <div class="row">
+      <div><span class="lbl">کد / بارکد</span><div class="fld"><input class="inp" id="f-code" inputmode="text"><button class="scan" id="scanF" aria-label="اسکن بارکد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg></button></div></div>
+      <div><span class="lbl">دسته‌بندی</span><input class="inp" id="f-cat" list="cats"></div>
+    </div>
+    <datalist id="cats"></datalist>
+    <div class="row">
+      <div><span class="lbl">قیمت خرید</span><input class="inp money" id="f-buy" inputmode="numeric"></div>
+      <div><span class="lbl">قیمت فروش</span><input class="inp money" id="f-sell" inputmode="numeric"></div>
+    </div>
+    <div class="row">
+      <div><span class="lbl">موجودی</span><input class="inp" id="f-qty" inputmode="decimal"></div>
+      <div><span class="lbl">واحد</span><input class="inp" id="f-unit" placeholder="عدد" list="units"></div>
+      <div><span class="lbl">حداقل (هشدار)</span><input class="inp" id="f-min" inputmode="decimal"></div>
+    </div>
+    <datalist id="units"><option value="عدد"><option value="بسته"><option value="کارتن"><option value="کیلو"><option value="متر"><option value="لیتر"></datalist>
+    <span class="lbl">توضیحات</span><input class="inp" id="f-note">
+    <div class="acts">
+      <button class="big" id="pSave">ذخیره</button>
+    </div>
+    <div class="acts" id="pExtra">
+      <button class="btn2" id="pSell">ثبت فروش/ورود این کالا</button>
+      <button class="btn2 danger" id="pDel">حذف کالا</button>
+    </div>
+    <button class="btn2" id="pCancel">انصراف</button>
+  </div>
+</div>
+
+<!-- دیالوگ -->
+<div class="ov" id="dov" style="align-items:center">
+  <div class="dlg">
+    <div id="dMsg"></div>
+    <textarea class="inp" id="dText" hidden readonly></textarea>
+    <div class="acts"><button class="btn2" id="dNo">انصراف</button><button class="big" id="dYes" style="margin:8px 0 0">بله</button></div>
+  </div>
+</div>
+<div id="toast"></div>
+<input type="file" id="camIn" accept="image/*" capture="environment" hidden>
+
+<script>
+// ---------- ابزار ----------
+const $ = s => document.querySelector(s);
+const fa = new Intl.NumberFormat('fa-IR', {maximumFractionDigits: 2});
+const F = n => fa.format(+n || 0);
+const fd = s => String(s).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+function num(s){
+  s = String(s ?? '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+    .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/[,٬\s]/g, '').replace('٫', '.');
+  const v = parseFloat(s); return isNaN(v) ? 0 : v;
+}
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+function g2j(gy, gm, gd){
+  const gdm = [0,31,59,90,120,151,181,212,243,273,304,334];
+  const gy2 = gm > 2 ? gy + 1 : gy;
+  let days = 355666 + 365*gy + Math.floor((gy2+3)/4) - Math.floor((gy2+99)/100) + Math.floor((gy2+399)/400) + gd + gdm[gm-1];
+  let jy = -1595 + 33*Math.floor(days/12053); days %= 12053;
+  jy += 4*Math.floor(days/1461); days %= 1461;
+  if (days > 365){ jy += Math.floor((days-1)/365); days = (days-1)%365; }
+  const jm = days < 186 ? 1 + Math.floor(days/31) : 7 + Math.floor((days-186)/30);
+  const jd = days < 186 ? 1 + days%31 : 1 + (days-186)%30;
+  return [jy, jm, jd];
+}
+const MONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+function jLong(d){ const [y,m,dd] = g2j(d.getFullYear(), d.getMonth()+1, d.getDate()); return `${fd(dd)} ${MONTHS[m-1]} ${fd(y)}`; }
+function dayLabel(key){
+  const [y,m,d] = key.split('-').map(Number); const dt = new Date(y, m-1, d);
+  const t = dayKey(new Date()), yd = dayKey(new Date(Date.now()-864e5));
+  return key === t ? 'امروز' : key === yd ? 'دیروز' : jLong(dt);
+}
+const hm = iso => { const d = new Date(iso); return fd(pad(d.getHours()) + ':' + pad(d.getMinutes())); };
+function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove('on'), 2200); }
+function ask(msg, yes = 'بله', text = null){
+  return new Promise(res => {
+    $('#dMsg').innerHTML = msg; $('#dYes').textContent = yes;
+    const ta = $('#dText'); ta.hidden = text == null; if (text != null) ta.value = text;
+    $('#dNo').hidden = text != null;
+    $('#dov').classList.add('on');
+    const done = v => { $('#dov').classList.remove('on'); $('#dYes').onclick = $('#dNo').onclick = null; res(v); };
+    $('#dYes').onclick = () => done(true); $('#dNo').onclick = () => done(false);
+    if (text != null) setTimeout(() => { ta.focus(); ta.select(); }, 50);
+  });
+}
+// فرمت سه‌رقمی هنگام تایپ قیمت
+document.addEventListener('input', e => {
+  if (!e.target.classList.contains('money')) return;
+  const v = num(e.target.value); e.target.value = v ? F(v) : '';
+});
+
+// ---------- داده ----------
+const S = {products:{}, days:{}, cloud:false, loaded:false};
+let base = null;
+const LS = 'anbar-v1';
+function loadLocal(){ try { const o = JSON.parse(localStorage.getItem(LS) || '{}'); S.products = o.products || {}; S.days = o.days || {}; } catch(e){} }
+function saveLocal(){ if (S.cloud) return; try { localStorage.setItem(LS, JSON.stringify({products:S.products, days:S.days})); } catch(e){} }
+const chains = {};
+function write(path, fn){
+  chains[path] = (chains[path] || Promise.resolve()).then(fn).catch(e => {
+    console.error(e);
+    toast(e && e.code === 'quota_exceeded' ? 'فضای ذخیره‌سازی پر شده' : 'ذخیره نشد؛ اتصال را بررسی کنید');
+  });
+}
+function putProduct(id, p){
+  S.products[id] = p;
+  if (S.cloud) write('p/'+id, () => base.collection('products').doc(id).set(p)); else saveLocal();
+}
+function delProduct(id){
+  delete S.products[id];
+  if (S.cloud) write('p/'+id, () => base.collection('products').doc(id).delete()); else saveLocal();
+}
+function putDay(day){
+  const items = (S.days[day] || {items:[]}).items;
+  if (S.cloud) write('m/'+day, () => base.collection('moves').doc(day).set({day, items})); else saveLocal();
+}
+const sign = k => k === 'out' ? -1 : 1;
+function addMove(m){
+  const day = dayKey(new Date(m.t));
+  const d = S.days[day] || {day, items:[]};
+  S.days[day] = {day, items:[...d.items, m]};
+  putDay(day);
+  const p = S.products[m.pid];
+  if (p && m.kind !== 'adj') putProduct(m.pid, {...p, qty: (+p.qty || 0) + sign(m.kind) * m.qty});
+}
+function removeMove(day, id){
+  const d = S.days[day]; if (!d) return;
+  const m = d.items.find(x => x.id === id); if (!m) return;
+  S.days[day] = {day, items: d.items.filter(x => x.id !== id)};
+  putDay(day);
+  const p = S.products[m.pid];
+  if (p) putProduct(m.pid, {...p, qty: (+p.qty || 0) - sign(m.kind) * m.qty});
+}
+
+function setMode(m){
+  const e = $('#mode');
+  const map = {
+    cloud: ['ذخیره در حساب شما', 'pill'],
+    loading: ['در حال بارگذاری…', 'pill warn'],
+    slow: ['اتصال کند است…', 'pill warn'],
+    err: ['خطا در اتصال', 'pill bad'],
+    local: ['فقط در همین مرورگر', 'pill warn'],
+    phone: ['ذخیره روی همین گوشی', 'pill'],
+  };
+  e.textContent = map[m][0]; e.className = map[m][1];
+  $('#where').textContent = m === 'phone'
+    ? 'اطلاعات روی همین گوشی ذخیره می‌شود. هر چند وقت یک بار فایل پشتیبان بگیرید و برای خودتان در تلگرام یا ایمیل بفرستید تا اگر گوشی خراب شد چیزی از دست نرود.'
+    : m === 'local'
+    ? 'اطلاعات فعلاً فقط در همین مرورگر ذخیره می‌شود و ممکن است پاک شود. برای ذخیره‌ی دائمی، این صفحه را از داخل حساب Claude باز کنید.'
+    : 'اطلاعات به‌صورت خصوصی در حساب Claude شما ذخیره می‌شود و روی گوشی و کامپیوتر یکی است. فقط خود شما آن را می‌بینید.';
+}
+
+async function init(){
+  $('#today').textContent = 'امروز ' + jLong(new Date());
+  loadLocal(); render();
+  if (window.Android){ setMode('phone'); $('#appOnly').hidden = false; return; }
+  if (!window.claude || !claude.use){ setMode('local'); return; }
+  try {
+    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    const uid = user ? await user.id() : null;
+    if (!db || !uid){ setMode('local'); return; }
+    base = db.doc('data/users/' + uid + '/shop');
+    S.cloud = true; S.products = {}; S.days = {};
+    setMode('loading'); render();
+    const timer = setTimeout(() => { if (!S.loaded) setMode('slow'); }, 10000);
+    base.collection('products').onSnapshot(s => {
+      const o = {}; s.docs.forEach(d => o[d.id] = d.data()); S.products = o;
+      if (!s.metadata.fromCache && !S.loaded){ S.loaded = true; clearTimeout(timer); setMode('cloud'); }
+      render();
+    }, () => { clearTimeout(timer); setMode('err'); });
+    base.collection('moves').orderBy('day', 'desc').limit(120).onSnapshot(s => {
+      const o = {}; s.docs.forEach(d => { const x = d.data(); o[d.id] = {day: x.day, items: [...(x.items || [])]}; });
+      S.days = o; render();
+    }, () => {});
+  } catch(e){ console.error(e); S.cloud = false; loadLocal(); setMode('local'); render(); }
+}
+
+// ---------- نمایش ----------
+let tab = 't-prod', onlyLow = false;
+const isLow = p => (+p.qty || 0) <= (+p.min || 0);
+const sortedProducts = () => Object.entries(S.products).sort((a, b) => (a[1].name || '').localeCompare(b[1].name || '', 'fa'));
+function allMoves(){
+  const out = [];
+  Object.values(S.days).forEach(d => d.items.forEach(m => out.push({...m, day: d.day})));
+  return out.sort((a, b) => b.t.localeCompare(a.t));
+}
+
+function render(){ renderProducts(); renderMoves(); renderReport(); renderPicked(); }
+
+function renderProducts(){
+  const q = $('#q').value.trim().toLowerCase();
+  let list = sortedProducts().filter(([, p]) =>
+    !q || [p.name, p.code, p.cat].some(v => (v || '').toLowerCase().includes(q)));
+  if (onlyLow) list = list.filter(([, p]) => isLow(p));
+  const lowN = Object.values(S.products).filter(isLow).length;
+  $('#lowBtn').textContent = 'رو به اتمام' + (lowN ? ' (' + F(lowN) + ')' : '');
+  const el = $('#plist');
+  if (!Object.keys(S.products).length){
+    el.innerHTML = `<div class="empty"><b>هنوز کالایی ثبت نکرده‌اید</b>با دکمه‌ی + پایین صفحه اولین کالا را اضافه کنید.</div>`; return;
+  }
+  if (!list.length){ el.innerHTML = `<div class="empty">کالایی پیدا نشد.</div>`; return; }
+  el.innerHTML = list.map(([id, p]) => `
+    <div class="card prod" data-id="${esc(id)}">
+      <div style="min-width:0">
+        <div class="nm">${esc(p.name)}</div>
+        <div class="meta">${[p.code && 'کد ' + esc(p.code), p.cat && esc(p.cat)].filter(Boolean).join(' · ') || '&nbsp;'}</div>
+        <div class="pr">فروش <b>${F(p.sell)}</b> · خرید ${F(p.buy)}</div>
+      </div>
+      <div class="qty ${isLow(p) ? 'low' : ''}"><b>${F(p.qty)}</b><span>${esc(p.unit || 'عدد')}</span></div>
+    </div>`).join('');
+}
+
+function renderMoves(){
+  const el = $('#mlist');
+  const days = Object.values(S.days).filter(d => d.items.length).sort((a, b) => b.day.localeCompare(a.day)).slice(0, 14);
+  if (!days.length){ el.innerHTML = `<div class="empty">هنوز تراکنشی ثبت نشده.</div>`; return; }
+  const kn = {out: 'فروش', in: 'ورود', adj: 'اصلاح'};
+  el.innerHTML = days.map(d => {
+    const sum = d.items.filter(m => m.kind === 'out').reduce((s, m) => s + m.qty * m.price, 0);
+    return `<div class="day">${dayLabel(d.day)}${sum ? ' — فروش ' + F(sum) + ' تومان' : ''}</div>
+    <div class="card">${[...d.items].reverse().map(m => `
+      <div class="mv">
+        <span class="tag ${m.kind}">${kn[m.kind]}</span>
+        <div class="info"><b>${esc(S.products[m.pid]?.name || m.name || '—')}</b>
+          <small>${hm(m.t)} · ${F(m.qty)} ${m.kind !== 'adj' ? '× ' + F(m.price) : 'واحد'}${m.note ? ' · ' + esc(m.note) : ''}</small></div>
+        <div class="amt">${m.kind !== 'adj' ? F(m.qty * m.price) : ''}${m.kind === 'out' ? `<small>سود ${F((m.price - m.cost) * m.qty)}</small>` : ''}</div>
+        <button class="x" data-del="${esc(d.day)}|${esc(m.id)}" aria-label="حذف">✕</button>
+      </div>`).join('')}</div>`;
+  }).join('');
+}
+
+function renderReport(){
+  const ps = Object.values(S.products);
+  const vb = ps.reduce((s, p) => s + (+p.qty > 0 ? p.qty * (p.buy || 0) : 0), 0);
+  const vs = ps.reduce((s, p) => s + (+p.qty > 0 ? p.qty * (p.sell || 0) : 0), 0);
+  const today = dayKey(new Date()), d30 = dayKey(new Date(Date.now() - 29 * 864e5));
+  let st = 0, pt = 0, s30 = 0, p30 = 0, n = 0;
+  Object.values(S.days).forEach(d => d.items.forEach(m => {
+    if (m.kind !== 'out') return;
+    const v = m.qty * m.price, pr = (m.price - m.cost) * m.qty;
+    if (d.day === today){ st += v; pt += pr; n++; }
+    if (d.day >= d30){ s30 += v; p30 += pr; }
+  }));
+  const T = (label, v, cls = '', u = 'تومان') => `<div class="card stat ${cls}"><small>${label}</small><b>${F(v)} <span class="u">${u}</span></b></div>`;
+  $('#stats').innerHTML =
+    T('فروش امروز', st, 'hi') + T('سود امروز', pt, 'hi') +
+    T('فروش ۳۰ روز اخیر', s30) + T('سود ۳۰ روز اخیر', p30) +
+    T('ارزش انبار (قیمت خرید)', vb) + T('ارزش انبار (قیمت فروش)', vs) +
+    T('تعداد کالاها', ps.length, '', 'قلم') + T('تعداد فروش امروز', n, '', 'مورد');
+  const low = sortedProducts().filter(([, p]) => isLow(p));
+  $('#lowlist').innerHTML = low.length
+    ? low.map(([id, p]) => `<div class="card prod" data-id="${esc(id)}"><div><div class="nm">${esc(p.name)}</div><div class="meta">حداقل: ${F(p.min)}</div></div><div class="qty low"><b>${F(p.qty)}</b><span>${esc(p.unit || 'عدد')}</span></div></div>`).join('')
+    : `<div class="empty" style="padding:22px">همه‌ی کالاها موجودی کافی دارند 👌</div>`;
+  $('#cats').innerHTML = [...new Set(ps.map(p => p.cat).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join('');
+}
+
+// ---------- تب‌ها ----------
+function go(t){
+  tab = t;
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === t));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  $('#fab').style.display = t === 't-prod' ? '' : 'none';
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => go(b.dataset.t));
+$('#q').oninput = renderProducts;
+$('#lowBtn').onclick = () => { onlyLow = !onlyLow; $('#lowBtn').classList.toggle('on', onlyLow); renderProducts(); };
+document.addEventListener('click', e => {
+  const c = e.target.closest('.prod'); if (c) openProduct(c.dataset.id);
+});
+
+// ---------- فرم کالا ----------
+let editId = null;
+const FIELDS = ['name', 'code', 'cat', 'buy', 'sell', 'qty', 'unit', 'min', 'note'];
+const NUMS = ['buy', 'sell', 'qty', 'min'];
+function openProduct(id = null){
+  editId = id; const p = id ? S.products[id] : {};
+  $('#pTitle').textContent = id ? 'ویرایش کالا' : 'کالای جدید';
+  FIELDS.forEach(f => $('#f-' + f).value = NUMS.includes(f) ? (id ? F(p[f]) : '') : (p[f] || ''));
+  $('#pExtra').hidden = !id;
+  $('#pov').classList.add('on');
+  if (!id) setTimeout(() => $('#f-name').focus(), 200);
+}
+const closeProduct = () => $('#pov').classList.remove('on');
+$('#fab').onclick = () => openProduct();
+$('#pCancel').onclick = closeProduct;
+$('#pov').onclick = e => { if (e.target.id === 'pov') closeProduct(); };
+$('#pSave').onclick = () => {
+  const p = {};
+  FIELDS.forEach(f => p[f] = NUMS.includes(f) ? num($('#f-' + f).value) : $('#f-' + f).value.trim());
+  if (!p.name){ toast('نام کالا را وارد کنید'); $('#f-name').focus(); return; }
+  if (p.code && Object.entries(S.products).some(([i, x]) => i !== editId && x.code === p.code)){ toast('این کد برای کالای دیگری ثبت شده'); return; }
+  const id = editId || newId();
+  const old = S.products[id];
+  if (old && (+old.qty || 0) !== p.qty)
+    addMove({id: newId(), pid: id, name: p.name, kind: 'adj', qty: p.qty - (+old.qty || 0), price: 0, cost: 0, t: new Date().toISOString(), note: 'اصلاح دستی موجودی'});
+  putProduct(id, {...(old || {created: new Date().toISOString()}), ...p});
+  closeProduct(); render(); toast(old ? 'تغییرات ذخیره شد' : 'کالا اضافه شد');
+};
+$('#pDel').onclick = async () => {
+  const p = S.products[editId];
+  if (!(await ask(`کالای «${esc(p.name)}» حذف شود؟<br><small>سوابق فروش آن باقی می‌ماند.</small>`, 'حذف'))) return;
+  delProduct(editId); closeProduct(); render(); toast('حذف شد');
+};
+$('#pSell').onclick = () => { const id = editId; closeProduct(); go('t-move'); pick(id); };
+
+// ---------- فروش / ورود ----------
+let kind = 'out', pickedId = null;
+document.querySelectorAll('#kind button').forEach(b => b.onclick = () => {
+  kind = b.dataset.k;
+  document.querySelectorAll('#kind button').forEach(x => x.classList.toggle('on', x === b));
+  $('#mSave').className = 'big ' + (kind === 'out' ? 'out' : '');
+  $('#mSave').textContent = kind === 'out' ? 'ثبت فروش' : 'ثبت ورود به انبار';
+  if (pickedId) setPrice();
+});
+function setPrice(){ const p = S.products[pickedId]; if (p) $('#mp').value = F(kind === 'out' ? p.sell : p.buy); calc(); }
+function pick(id){
+  pickedId = id; $('#pq').value = ''; $('#sugg').hidden = true;
+  $('#mq').value = F(1); setPrice(); renderPicked();
+}
+function renderPicked(){
+  const p = pickedId && S.products[pickedId];
+  if (pickedId && !p) pickedId = null;
+  $('#picked').hidden = !p; $('#pickWrap').hidden = !!p;
+  if (p) $('#picked').innerHTML = `<div><b>${esc(p.name)}</b><small>موجودی: ${F(p.qty)} ${esc(p.unit || 'عدد')}</small></div><button class="x" id="unpick">✕</button>`;
+  calc();
+}
+$('#picked').onclick = e => { if (e.target.id === 'unpick'){ pickedId = null; renderPicked(); $('#pq').focus(); } };
+$('#pq').oninput = () => {
+  const q = $('#pq').value.trim().toLowerCase(), box = $('#sugg');
+  if (!q){ box.hidden = true; return; }
+  const exact = Object.entries(S.products).find(([, p]) => p.code && p.code.toLowerCase() === q);
+  if (exact){ pick(exact[0]); return; }
+  const hits = sortedProducts().filter(([, p]) => [p.name, p.code].some(v => (v || '').toLowerCase().includes(q))).slice(0, 8);
+  box.hidden = false;
+  box.innerHTML = hits.length ? hits.map(([id, p]) => `<div data-pick="${esc(id)}"><span>${esc(p.name)}</span><small>موجودی ${F(p.qty)}</small></div>`).join('')
+    : `<div style="color:var(--mut);cursor:default">پیدا نشد — اول کالا را در بخش «کالاها» اضافه کنید.</div>`;
+};
+$('#sugg').onclick = e => { const d = e.target.closest('[data-pick]'); if (d) pick(d.dataset.pick); };
+$('#plus').onclick = () => { $('#mq').value = F(num($('#mq').value) + 1); calc(); };
+$('#minus').onclick = () => { $('#mq').value = F(Math.max(1, num($('#mq').value) - 1)); calc(); };
+$('#mq').addEventListener('input', calc);
+$('#mp').addEventListener('input', calc);
+function calc(){
+  const t = num($('#mq').value) * num($('#mp').value);
+  $('#mt').textContent = F(t) + ' تومان';
+  $('#mSave').disabled = !(pickedId && S.products[pickedId] && num($('#mq').value) > 0);
+}
+$('#mSave').onclick = async () => {
+  const p = S.products[pickedId]; if (!p) return;
+  const q = num($('#mq').value), price = num($('#mp').value);
+  if (q <= 0){ toast('مقدار را وارد کنید'); return; }
+  if (kind === 'out' && q > (+p.qty || 0) &&
+      !(await ask(`موجودی «${esc(p.name)}» فقط ${F(p.qty)} است. باز هم ثبت شود؟`, 'ثبت'))) return;
+  addMove({id: newId(), pid: pickedId, name: p.name, kind, qty: q, price, cost: +p.buy || 0, t: new Date().toISOString(), note: $('#mn').value.trim()});
+  if (kind === 'in' && price > 0 && price !== (+p.buy || 0) &&
+      (await ask(`قیمت خرید «${esc(p.name)}» به ${F(price)} تومان به‌روز شود؟`, 'به‌روز کن')))
+    putProduct(pickedId, {...S.products[pickedId], buy: price});
+  toast(kind === 'out' ? 'فروش ثبت شد ✓' : 'ورود ثبت شد ✓');
+  $('#mn').value = ''; $('#mp').value = ''; $('#mq').value = F(1); pickedId = null; render(); $('#pq').focus();
+};
+$('#mlist').onclick = async e => {
+  const b = e.target.closest('[data-del]'); if (!b) return;
+  const [day, id] = b.dataset.del.split('|');
+  if (!(await ask('این تراکنش حذف شود؟<br><small>موجودی کالا به حالت قبل برمی‌گردد.</small>', 'حذف'))) return;
+  removeMove(day, id); render(); toast('حذف شد');
+};
+
+// ---------- خروجی CSV ----------
+const csvRow = a => a.map(v => { v = String(v ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(',');
+async function copyOut(text, what, file){
+  if (window.Android && file){ Android.share(text, file); return; }
+  try { await navigator.clipboard.writeText(text); toast(what + ' کپی شد؛ در اکسل Paste کنید'); }
+  catch(e){ await ask('متن زیر را انتخاب و کپی کنید:', 'بستن', text); }
+}
+$('#csvP').onclick = () => copyOut([csvRow(['کد','نام','دسته','واحد','قیمت خرید','قیمت فروش','موجودی','حداقل','توضیحات'])]
+  .concat(sortedProducts().map(([, p]) => csvRow([p.code, p.name, p.cat, p.unit, p.buy, p.sell, p.qty, p.min, p.note]))).join('\n'), 'لیست کالاها', 'kala.csv');
+$('#csvM').onclick = () => copyOut([csvRow(['تاریخ','ساعت','کالا','نوع','مقدار','قیمت واحد','جمع','سود','توضیحات'])]
+  .concat(allMoves().map(m => { const d = new Date(m.t); const [y, mo, dd] = g2j(d.getFullYear(), d.getMonth()+1, d.getDate());
+    return csvRow([`${y}/${pad(mo)}/${pad(dd)}`, pad(d.getHours()) + ':' + pad(d.getMinutes()), S.products[m.pid]?.name || m.name,
+      {out:'فروش', in:'ورود', adj:'اصلاح'}[m.kind], m.qty, m.price, m.kind === 'adj' ? '' : m.qty * m.price, m.kind === 'out' ? (m.price - m.cost) * m.qty : '', m.note]); })).join('\n'), 'تراکنش‌ها', 'tarakonesh.csv');
+
+// ---------- اسکن بارکد با دوربین ----------
+let scanCb = null;
+window.onNativeScan = c => { if (c && scanCb) scanCb(String(c).trim()); };
+function scan(cb){ if (window.Android){ scanCb = cb; Android.scan(); return; } scanCb = cb; const i = $('#camIn'); i.value = ''; i.click(); }
+let zxP = null;
+function loadZX(){
+  return zxP = zxP || new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+    s.onload = res; s.onerror = () => { zxP = null; rej(new Error('zxing')); };
+    document.head.appendChild(s);
+  });
+}
+async function shrink(file, max){
+  const img = await createImageBitmap(file);
+  const k = Math.min(1, max / Math.max(img.width, img.height));
+  const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c;
+}
+async function decode(file){
+  if ('BarcodeDetector' in window){
+    try { const r = await new BarcodeDetector().detect(await createImageBitmap(file)); if (r.length) return r[0].rawValue; } catch(e){}
+  }
+  await loadZX();
+  const hints = new Map(); hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+  for (const size of [1400, 900, 2000]){
+    try { const c = await shrink(file, size);
+      const r = await new ZXing.BrowserMultiFormatReader(hints).decodeFromImageUrl(c.toDataURL('image/jpeg', .92));
+      if (r) return r.getText(); } catch(e){}
+  }
+  return null;
+}
+$('#camIn').onchange = async () => {
+  const f = $('#camIn').files[0]; if (!f || !scanCb) return;
+  toast('در حال خواندن بارکد…');
+  let code = null;
+  try { code = await decode(f); } catch(e){ console.error(e); }
+  if (!code){ toast('بارکد خوانده نشد؛ نزدیک‌تر و صاف‌تر عکس بگیر'); return; }
+  scanCb(code.trim());
+};
+const byCode = c => Object.entries(S.products).find(([, p]) => p.code && p.code === c);
+async function notFound(code){
+  if (await ask(`کالایی با کد <b>${esc(code)}</b> ثبت نشده. کالای جدید با این کد بسازم؟`, 'بساز')){
+    go('t-prod'); openProduct(); $('#f-code').value = code;
+  }
+}
+$('#scanQ').onclick = () => scan(code => { const h = byCode(code); if (h) openProduct(h[0]); else notFound(code); });
+$('#scanS').onclick = () => scan(code => { const h = byCode(code); if (h){ pick(h[0]); toast(h[1].name); } else notFound(code); });
+$('#scanF').onclick = () => scan(code => { $('#f-code').value = code; toast('کد ثبت شد: ' + code); });
+
+// ---------- مخصوص برنامه‌ی اندروید ----------
+window.onNativeError = t => toast(t);
+window.onBack = () => {
+  if ($('#dov').classList.contains('on')){ $('#dNo').hidden ? $('#dYes').click() : $('#dNo').click(); return true; }
+  if ($('#pov').classList.contains('on')){ closeProduct(); return true; }
+  if (tab !== 't-prod'){ go('t-prod'); return true; }
+  return false;
+};
+$('#bkBtn').onclick = () => {
+  const d = new Date(), [y, m, dd] = g2j(d.getFullYear(), d.getMonth()+1, d.getDate());
+  Android.share(JSON.stringify({app: 'anbar', v: 1, products: S.products, days: S.days}), `anbar-backup-${y}-${pad(m)}-${pad(dd)}.json`);
+};
+$('#rsBtn').onclick = () => Android.pickFile();
+window.onNativeFile = async txt => {
+  let o; try { o = JSON.parse(txt); } catch(e){}
+  if (!o || o.app !== 'anbar' || !o.products){ toast('این فایل پشتیبان برنامه نیست'); return; }
+  if (!(await ask(`پشتیبان با ${F(Object.keys(o.products).length)} کالا پیدا شد.<br>اطلاعات فعلی با آن جایگزین شود؟`, 'جایگزین کن'))) return;
+  S.products = o.products; S.days = o.days || {}; saveLocal(); render(); toast('بازگردانی شد ✓');
+};
+
+go('t-prod');
+init();
+</script>
+</body>
+</html>
