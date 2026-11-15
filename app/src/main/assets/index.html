@@ -21,6 +21,7 @@ h1 small{display:block;font-size:12px;font-weight:500;color:var(--mut);margin-to
 .pill.warn{background:var(--amb2);color:var(--amb)}
 .pill.bad{background:var(--red2);color:var(--red)}
 main{max-width:720px;margin:0 auto;padding:0 14px}
+#plist{padding-bottom:150px}
 section{display:none}section.on{display:block}
 .search{display:flex;gap:8px;margin:4px 0 10px}
 .inp{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;outline:none}
@@ -39,6 +40,8 @@ section{display:none}section.on{display:block}
 .qty.low{background:var(--red2);color:var(--red)}
 .empty{text-align:center;color:var(--mut);padding:44px 18px;line-height:1.9}
 .empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.fab2{position:fixed;left:18px;bottom:calc(160px + env(safe-area-inset-bottom));height:56px;padding:0 18px 0 16px;border-radius:18px;border:0;background:var(--amb);color:#fff;font-size:16px;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.2);cursor:pointer;z-index:6;display:flex;align-items:center;gap:8px}
+.fab2 svg{width:24px;height:24px}
 .fab{position:fixed;left:18px;bottom:calc(92px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:18px;border:0;background:var(--pri);color:#fff;font-size:30px;box-shadow:0 6px 18px rgba(0,0,0,.2);cursor:pointer;z-index:6}
 nav{position:fixed;bottom:0;right:0;left:0;z-index:8;background:var(--card);border-top:1px solid var(--line);display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
 nav button{flex:1;border:0;background:none;padding:6px 0;font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border-radius:12px}
@@ -168,11 +171,11 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
       </div>
     </div>
     <div class="row">
-      <div><span class="lbl">قیمت واحد (تومان)</span><input class="inp money" id="mp" inputmode="numeric"></div>
+      <div><span class="lbl">قیمت واحد (درهم)</span><input class="inp money" id="mp" inputmode="decimal"></div>
     </div>
     <span class="lbl">توضیحات (اختیاری)</span>
     <input class="inp" id="mn" placeholder="مثلاً نام مشتری یا فروشنده">
-    <div class="total"><span>جمع کل</span><b id="mt">۰ تومان</b></div>
+    <div class="total"><span>جمع کل</span><b id="mt">۰ درهم</b></div>
     <button class="big out" id="mSave" disabled>ثبت فروش</button>
     <h2>تراکنش‌های اخیر</h2>
     <div id="mlist"></div>
@@ -195,6 +198,7 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
   </section>
 </main>
 
+<button class="fab2" id="fabSell" aria-label="فروش"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg>فروش</button>
 <button class="fab" id="fab" aria-label="کالای جدید">+</button>
 
 <nav>
@@ -218,8 +222,8 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
     </div>
     <datalist id="cats"></datalist>
     <div class="row">
-      <div><span class="lbl">قیمت خرید</span><input class="inp money" id="f-buy" inputmode="numeric"></div>
-      <div><span class="lbl">قیمت فروش</span><input class="inp money" id="f-sell" inputmode="numeric"></div>
+      <div><span class="lbl">قیمت خرید</span><input class="inp money" id="f-buy" inputmode="decimal"></div>
+      <div><span class="lbl">قیمت فروش</span><input class="inp money" id="f-sell" inputmode="decimal"></div>
     </div>
     <div class="row">
       <div><span class="lbl">موجودی</span><input class="inp" id="f-qty" inputmode="decimal"></div>
@@ -284,8 +288,8 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
         <span class="lbl">تعداد ورود</span>
         <div class="stepper"><button id="wPlus">+</button><input class="inp" id="wQty" inputmode="decimal"><button id="wMinus">−</button></div>
         <div class="row">
-          <div><span class="lbl">قیمت خرید (هر عدد)</span><input class="inp money" id="wBuy" inputmode="numeric"></div>
-          <div><span class="lbl">قیمت فروش</span><input class="inp money" id="wSell" inputmode="numeric"></div>
+          <div><span class="lbl">قیمت خرید (هر عدد)</span><input class="inp money" id="wBuy" inputmode="decimal"></div>
+          <div><span class="lbl">قیمت فروش</span><input class="inp money" id="wSell" inputmode="decimal"></div>
         </div>
         <button class="big" id="wSave">ثبت ورود به انبار</button>
       </div>
@@ -334,7 +338,8 @@ function g2j(gy, gm, gd){
   return [jy, jm, jd];
 }
 const MONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
-function jLong(d){ const [y,m,dd] = g2j(d.getFullYear(), d.getMonth()+1, d.getDate()); return `${fd(dd)} ${MONTHS[m-1]} ${fd(y)}`; }
+const GFMT = (() => { try { return new Intl.DateTimeFormat('fa-IR-u-ca-gregory-nu-arabext', {day: 'numeric', month: 'long', year: 'numeric'}); } catch(e){ return null; } })();
+function jLong(d){ return GFMT ? GFMT.format(d) : fd(`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`); }
 function dayLabel(key){
   const [y,m,d] = key.split('-').map(Number); const dt = new Date(y, m-1, d);
   const t = dayKey(new Date()), yd = dayKey(new Date(Date.now()-864e5));
@@ -356,6 +361,7 @@ function ask(msg, yes = 'بله', text = null){
 // فرمت سه‌رقمی هنگام تایپ قیمت
 document.addEventListener('input', e => {
   if (!e.target.classList.contains('money')) return;
+  if (/[.٫]/.test(e.target.value)) return;
   const v = num(e.target.value); e.target.value = v ? F(v) : '';
 });
 
@@ -489,7 +495,7 @@ function renderMoves(){
   const kn = {out: 'فروش', in: 'ورود', adj: 'اصلاح'};
   el.innerHTML = days.map(d => {
     const sum = d.items.filter(m => m.kind === 'out').reduce((s, m) => s + m.qty * m.price, 0);
-    return `<div class="day">${dayLabel(d.day)}${sum ? ' — فروش ' + F(sum) + ' تومان' : ''}</div>
+    return `<div class="day">${dayLabel(d.day)}${sum ? ' — فروش ' + F(sum) + ' درهم' : ''}</div>
     <div class="card">${[...d.items].reverse().map(m => `
       <div class="mv">
         <span class="tag ${m.kind}">${kn[m.kind]}</span>
@@ -513,7 +519,7 @@ function renderReport(){
     if (d.day === today){ st += v; pt += pr; n++; }
     if (d.day >= d30){ s30 += v; p30 += pr; }
   }));
-  const T = (label, v, cls = '', u = 'تومان') => `<div class="card stat ${cls}"><small>${label}</small><b>${F(v)} <span class="u">${u}</span></b></div>`;
+  const T = (label, v, cls = '', u = 'درهم') => `<div class="card stat ${cls}"><small>${label}</small><b>${F(v)} <span class="u">${u}</span></b></div>`;
   $('#stats').innerHTML =
     T('فروش امروز', st, 'hi') + T('سود امروز', pt, 'hi') +
     T('فروش ۳۰ روز اخیر', s30) + T('سود ۳۰ روز اخیر', p30) +
@@ -531,7 +537,7 @@ function go(t){
   tab = t;
   document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === t));
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  $('#fab').style.display = t === 't-prod' ? '' : 'none';
+  $('#fab').style.display = $('#fabSell').style.display = t === 't-prod' ? '' : 'none';
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => go(b.dataset.t));
@@ -618,7 +624,7 @@ $('#mq').addEventListener('input', calc);
 $('#mp').addEventListener('input', calc);
 function calc(){
   const t = num($('#mq').value) * num($('#mp').value);
-  $('#mt').textContent = F(t) + ' تومان';
+  $('#mt').textContent = F(t) + ' درهم';
   $('#mSave').disabled = !(pickedId && S.products[pickedId] && num($('#mq').value) > 0);
 }
 $('#mSave').onclick = async () => {
@@ -629,7 +635,7 @@ $('#mSave').onclick = async () => {
       !(await ask(`موجودی «${esc(p.name)}» فقط ${F(p.qty)} است. باز هم ثبت شود؟`, 'ثبت'))) return;
   addMove({id: newId(), pid: pickedId, name: p.name, kind, qty: q, price, cost: +p.buy || 0, t: new Date().toISOString(), note: $('#mn').value.trim()});
   if (kind === 'in' && price > 0 && price !== (+p.buy || 0) &&
-      (await ask(`قیمت خرید «${esc(p.name)}» به ${F(price)} تومان به‌روز شود؟`, 'به‌روز کن')))
+      (await ask(`قیمت خرید «${esc(p.name)}» به ${F(price)} درهم به‌روز شود؟`, 'به‌روز کن')))
     putProduct(pickedId, {...S.products[pickedId], buy: price});
   toast(kind === 'out' ? 'فروش ثبت شد ✓' : 'ورود ثبت شد ✓');
   $('#mn').value = ''; $('#mp').value = ''; $('#mq').value = F(1); pickedId = null; render(); $('#pq').focus();
@@ -651,8 +657,8 @@ async function copyOut(text, what, file){
 $('#csvP').onclick = () => copyOut([csvRow(['کد','نام','نیکوتین (mg)','دسته','واحد','قیمت خرید','قیمت فروش','موجودی','حداقل','توضیحات'])]
   .concat(sortedProducts().map(([, p]) => csvRow([p.code, p.name, p.nic, p.cat, p.unit, p.buy, p.sell, p.qty, p.min, p.note]))).join('\n'), 'لیست کالاها', 'kala.csv');
 $('#csvM').onclick = () => copyOut([csvRow(['تاریخ','ساعت','کالا','نوع','مقدار','قیمت واحد','جمع','سود','توضیحات'])]
-  .concat(allMoves().map(m => { const d = new Date(m.t); const [y, mo, dd] = g2j(d.getFullYear(), d.getMonth()+1, d.getDate());
-    return csvRow([`${y}/${pad(mo)}/${pad(dd)}`, pad(d.getHours()) + ':' + pad(d.getMinutes()), S.products[m.pid]?.name || m.name,
+  .concat(allMoves().map(m => { const d = new Date(m.t);
+    return csvRow([dayKey(d), pad(d.getHours()) + ':' + pad(d.getMinutes()), S.products[m.pid]?.name || m.name,
       {out:'فروش', in:'ورود', adj:'اصلاح'}[m.kind], m.qty, m.price, m.kind === 'adj' ? '' : m.qty * m.price, m.kind === 'out' ? (m.price - m.cost) * m.qty : '', m.note]); })).join('\n'), 'تراکنش‌ها', 'tarakonesh.csv');
 
 // ---------- اسکن بارکد با دوربین ----------
@@ -718,8 +724,7 @@ window.onBack = () => {
   return false;
 };
 $('#bkBtn').onclick = () => {
-  const d = new Date(), [y, m, dd] = g2j(d.getFullYear(), d.getMonth()+1, d.getDate());
-  Android.share(JSON.stringify({app: 'anbar', v: 1, products: S.products, days: S.days}), `anbar-backup-${y}-${pad(m)}-${pad(dd)}.json`);
+  Android.share(JSON.stringify({app: 'anbar', v: 1, products: S.products, days: S.days}), `anbar-backup-${dayKey(new Date())}.json`);
 };
 $('#rsBtn').onclick = () => Android.pickFile();
 window.onNativeFile = async txt => {
@@ -752,7 +757,7 @@ function saleSync(){
   $('#sNicBox').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.n === n && !!h));
   const q = num($('#sQty').value) || 1;
   $('#sInfo').innerHTML = h
-    ? `${F(h[1].sell)} تومان × ${F(q)} = <b>${F(h[1].sell * q)}</b> · موجودی: ${F(h[1].qty)}`
+    ? `${F(h[1].sell)} درهم × ${F(q)} = <b>${F(h[1].sell * q)}</b> · موجودی: ${F(h[1].qty)}`
     : (sale.v.length > 1 && !n ? 'نیکوتین را بنویسید یا انتخاب کنید' : `<span style="color:var(--red)">این نیکوتین برای این بارکد ثبت نشده</span>`);
   $('#sOk').disabled = !h;
 }
@@ -775,6 +780,7 @@ $('#sOk').onclick = () => {
   if (window.Android && selling) setTimeout(() => { if (selling) scan(quickSell); }, 700);
 };
 $('#quickSell').onclick = () => { selling = true; scan(quickSell); };
+$('#fabSell').onclick = () => { go('t-move'); $('#kind button[data-k=out]').click(); $('#quickSell').click(); };
 // اگر اسکنر بسته شد (دکمه‌ی برگشت)، فروش پشت‌سرهم تمام می‌شود
 const _ons = window.onNativeScan;
 window.onNativeScan = c => { if (!c){ selling = false; return; } _ons(c); };
