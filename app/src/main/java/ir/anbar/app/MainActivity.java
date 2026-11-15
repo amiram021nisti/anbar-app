@@ -1,6 +1,9 @@
 package ir.anbar.app;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.pm.PackageManager;
+import android.graphics.Rect;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -17,9 +20,14 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanOptions;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -28,6 +36,8 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -52,6 +62,49 @@ public class MainActivity extends AppCompatActivity {
                     callJs("onNativeFile", "");
                 }
             });
+
+    // ---------- خواندن متن (اسم برند) از عکس ----------
+    private Uri photoUri;
+
+    private final ActivityResultLauncher<Uri> takePhoto =
+            registerForActivityResult(new ActivityResultContracts.TakePicture(), ok -> {
+                if (!ok || photoUri == null) { callJs("onNativeOcr", "[]"); return; }
+                try {
+                    InputImage img = InputImage.fromFilePath(this, photoUri);
+                    TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).process(img)
+                            .addOnSuccessListener(t -> {
+                                // بزرگ‌ترین نوشته‌ها (معمولاً اسم برند) اول بیایند
+                                List<Object[]> lines = new ArrayList<>();
+                                for (Text.TextBlock b : t.getTextBlocks())
+                                    for (Text.Line l : b.getLines()) {
+                                        Rect r = l.getBoundingBox();
+                                        lines.add(new Object[]{l.getText(), r == null ? 0 : r.height()});
+                                    }
+                                lines.sort((a, c) -> Integer.compare((int) c[1], (int) a[1]));
+                                JSONArray arr = new JSONArray();
+                                for (Object[] o : lines) arr.put(o[0]);
+                                callJs("onNativeOcr", arr.toString());
+                            })
+                            .addOnFailureListener(e -> callJs("onNativeOcr", "[]"));
+                } catch (Exception e) {
+                    callJs("onNativeOcr", "[]");
+                }
+            });
+
+    private final ActivityResultLauncher<String> cameraPermission =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+                if (granted) launchPhoto(); else callJs("onNativeError", "اجازه‌ی دوربین داده نشد");
+            });
+
+    private void launchPhoto() {
+        try {
+            File f = new File(getCacheDir(), "ocr.jpg");
+            photoUri = FileProvider.getUriForFile(this, "ir.anbar.app.files", f);
+            takePhoto.launch(photoUri);
+        } catch (Exception e) {
+            callJs("onNativeOcr", "[]");
+        }
+    }
 
     private void callJs(String fn, String arg) {
         String js = "window." + fn + "&&window." + fn + "(" + JSONObject.quote(arg) + ")";
@@ -125,6 +178,14 @@ public class MainActivity extends AppCompatActivity {
                 } catch (Exception e) {
                     callJs("onNativeError", "ارسال فایل انجام نشد");
                 }
+            });
+        }
+
+        @JavascriptInterface
+        public void ocr() {
+            runOnUiThread(() -> {
+                if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) launchPhoto();
+                else cameraPermission.launch(Manifest.permission.CAMERA);
             });
         }
 

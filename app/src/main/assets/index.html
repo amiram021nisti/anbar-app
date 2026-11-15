@@ -96,6 +96,19 @@ h2{font-size:15px;margin:24px 2px 8px;font-weight:700}
 .sheet .acts{display:flex;gap:8px;margin-top:16px}
 .sheet .acts button{flex:1;margin:0}
 .danger{color:var(--red)!important}
+.quick{display:flex;align-items:center;justify-content:center;font-size:17px;padding:17px}
+.quick small{display:block;font-weight:500;font-size:12px;opacity:.85}
+.or{text-align:center;color:var(--mut);font-size:12.5px;margin:18px 0 0;display:flex;align-items:center;gap:10px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.steps{display:flex;gap:6px;margin:6px 0 4px}
+.steps div{flex:1;height:5px;border-radius:5px;background:var(--line)}
+.steps div.on{background:var(--pri)}
+.ocrs{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.ocrs button{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;cursor:pointer;direction:ltr;font-size:14px}
+.ocrs button.on{background:var(--pri2);border-color:var(--pri);color:var(--pri);font-weight:700}
+.found{padding:12px 14px;border-radius:12px;background:var(--pri2);color:var(--pri);margin-top:10px;line-height:1.8}
+.found.new{background:var(--amb2);color:var(--amb)}
+.codebox{direction:ltr;text-align:center;font-size:20px;font-weight:800;letter-spacing:1px;padding:14px;margin-top:10px}
 .dlg{background:var(--card);border-radius:18px;padding:18px;width:min(92vw,380px);margin:auto;line-height:1.8}
 .dlg .acts{display:flex;gap:8px;margin-top:14px}
 .dlg .acts button{flex:1}
@@ -131,6 +144,9 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
       <button data-k="out" class="on out">فروش</button>
       <button data-k="in" class="in">خرید / ورود به انبار</button>
     </div>
+    <button class="big out quick" id="quickSell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:22px;height:22px;vertical-align:-5px;margin-left:6px"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg><span>اسکن سریع فروش<small>هر بارکد = یک عدد فروش</small></span></button>
+    <button class="big quick" id="quickIn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:22px;height:22px;vertical-align:-5px;margin-left:6px"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg><span>ورود کالا با اسکن<small>مرحله ۱: اسم برند · مرحله ۲: بارکد</small></span></button>
+    <div class="or">یا دستی ثبت کنید</div>
     <span class="lbl">کالا</span>
     <div id="pickWrap">
       <div class="fld"><input class="inp" id="pq" placeholder="نام یا کد کالا را بنویسید…" autocomplete="off"><button class="scan" id="scanS" aria-label="اسکن بارکد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg></button></div>
@@ -208,6 +224,40 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
       <button class="btn2 danger" id="pDel">حذف کالا</button>
     </div>
     <button class="btn2" id="pCancel">انصراف</button>
+  </div>
+</div>
+
+<!-- ورود دومرحله‌ای -->
+<div class="ov" id="wov">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3 id="wTitle">ورود کالا</h3>
+    <div class="steps"><div id="st1" class="on"></div><div id="st2"></div></div>
+    <div id="w1">
+      <span class="lbl">مرحله ۱ از ۲ — اسم برند / کالا</span>
+      <button class="btn2" id="ocrBtn">📷 عکس گرفتن از اسم برند روی بسته</button>
+      <div class="ocrs" id="ocrs"></div>
+      <span class="lbl">اسم کالا (می‌توانید ویرایش کنید)</span>
+      <input class="inp" id="wName" placeholder="مثلاً Nescafe Gold 200g">
+      <button class="big" id="wNext">بعدی: اسکن بارکد ←</button>
+    </div>
+    <div id="w2" hidden>
+      <span class="lbl">مرحله ۲ از ۲ — بارکد</span>
+      <button class="btn2" id="wScan">📷 اسکن بارکد</button>
+      <div class="card codebox" id="wCode" hidden></div>
+      <div id="wFound"></div>
+      <div id="wFields" hidden>
+        <span class="lbl">تعداد ورود</span>
+        <div class="stepper"><button id="wPlus">+</button><input class="inp" id="wQty" inputmode="decimal"><button id="wMinus">−</button></div>
+        <div class="row">
+          <div><span class="lbl">قیمت خرید (هر عدد)</span><input class="inp money" id="wBuy" inputmode="numeric"></div>
+          <div><span class="lbl">قیمت فروش</span><input class="inp money" id="wSell" inputmode="numeric"></div>
+        </div>
+        <button class="big" id="wSave">ثبت ورود به انبار</button>
+      </div>
+      <button class="btn2" id="wBack">→ برگشت به مرحله ۱</button>
+    </div>
+    <button class="btn2" id="wCancel">انصراف</button>
   </div>
 </div>
 
@@ -497,6 +547,7 @@ document.querySelectorAll('#kind button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#kind button').forEach(x => x.classList.toggle('on', x === b));
   $('#mSave').className = 'big ' + (kind === 'out' ? 'out' : '');
   $('#mSave').textContent = kind === 'out' ? 'ثبت فروش' : 'ثبت ورود به انبار';
+  $('#quickSell').hidden = kind !== 'out'; $('#quickIn').hidden = kind !== 'in';
   if (pickedId) setPrice();
 });
 function setPrice(){ const p = S.products[pickedId]; if (p) $('#mp').value = F(kind === 'out' ? p.sell : p.buy); calc(); }
@@ -621,6 +672,7 @@ window.onNativeError = t => toast(t);
 window.onBack = () => {
   if ($('#dov').classList.contains('on')){ $('#dNo').hidden ? $('#dYes').click() : $('#dNo').click(); return true; }
   if ($('#pov').classList.contains('on')){ closeProduct(); return true; }
+  if ($('#wov').classList.contains('on')){ closeWiz(); return true; }
   if (tab !== 't-prod'){ go('t-prod'); return true; }
   return false;
 };
@@ -634,6 +686,97 @@ window.onNativeFile = async txt => {
   if (!o || o.app !== 'anbar' || !o.products){ toast('این فایل پشتیبان برنامه نیست'); return; }
   if (!(await ask(`پشتیبان با ${F(Object.keys(o.products).length)} کالا پیدا شد.<br>اطلاعات فعلی با آن جایگزین شود؟`, 'جایگزین کن'))) return;
   S.products = o.products; S.days = o.days || {}; saveLocal(); render(); toast('بازگردانی شد ✓');
+};
+
+// ---------- فروش سریع با بارکد ----------
+let selling = false;
+function quickSell(code){
+  const h = byCode(code);
+  if (!h){ selling = false; notFound(code); return; }
+  const [id, p] = h;
+  addMove({id: newId(), pid: id, name: p.name, kind: 'out', qty: 1, price: +p.sell || 0, cost: +p.buy || 0, t: new Date().toISOString(), note: 'اسکن سریع'});
+  render();
+  const left = (+p.qty || 0) - 1;
+  toast(`✓ ${p.name} — ${F(p.sell)} تومان · موجودی: ${F(left)}` + (left < 0 ? ' ⚠️' : ''));
+  if (window.Android && selling) setTimeout(() => { if (selling) scan(quickSell); }, 900);
+}
+$('#quickSell').onclick = () => { selling = true; scan(quickSell); };
+// اگر اسکنر بسته شد (دکمه‌ی برگشت)، فروش پشت‌سرهم تمام می‌شود
+const _ons = window.onNativeScan;
+window.onNativeScan = c => { if (!c){ selling = false; return; } _ons(c); };
+
+// ---------- ورود دومرحله‌ای: اسم برند، بعد بارکد ----------
+let wiz = {};
+function wizStep(n){
+  $('#w1').hidden = n !== 1; $('#w2').hidden = n !== 2;
+  $('#st2').classList.toggle('on', n === 2);
+}
+function openWiz(){
+  wiz = {}; $('#wName').value = ''; $('#ocrs').innerHTML = '';
+  $('#wCode').hidden = true; $('#wFound').innerHTML = ''; $('#wFields').hidden = true;
+  $('#ocrBtn').hidden = !window.Android;
+  wizStep(1); $('#wov').classList.add('on');
+  if (window.Android) Android.ocr(); else setTimeout(() => $('#wName').focus(), 200);
+}
+const closeWiz = () => $('#wov').classList.remove('on');
+$('#quickIn').onclick = openWiz;
+$('#wCancel').onclick = closeWiz;
+$('#wov').onclick = e => { if (e.target.id === 'wov') closeWiz(); };
+$('#ocrBtn').onclick = () => Android.ocr();
+window.onNativeOcr = txt => {
+  let lines = []; try { lines = JSON.parse(txt || '[]'); } catch(e){}
+  lines = lines.map(x => String(x).trim()).filter(x => x.length > 1).slice(0, 10);
+  if (!lines.length){ toast('متنی خوانده نشد؛ اسم را تایپ کنید یا دوباره عکس بگیرید'); return; }
+  $('#ocrs').innerHTML = lines.map((l, i) => `<button data-i="${i}">${esc(l)}</button>`).join('');
+  wiz.lines = lines;
+  pickLine(0);
+};
+function pickLine(i){
+  $('#wName').value = wiz.lines[i];
+  $('#ocrs').querySelectorAll('button').forEach((b, j) => b.classList.toggle('on', j === i));
+}
+$('#ocrs').onclick = e => { const b = e.target.closest('button'); if (b) pickLine(+b.dataset.i); };
+$('#wNext').onclick = () => {
+  if (!$('#wName').value.trim()){ toast('اسم کالا را وارد کنید'); return; }
+  wizStep(2); wizScan();
+};
+$('#wBack').onclick = () => wizStep(1);
+function wizScan(){ scan(code => wizCode(code)); }
+$('#wScan').onclick = wizScan;
+function wizCode(code){
+  wiz.code = code;
+  $('#wCode').hidden = false; $('#wCode').textContent = code;
+  const h = byCode(code);
+  wiz.pid = h ? h[0] : null;
+  if (h){
+    const p = h[1];
+    $('#wFound').innerHTML = `<div class="found">این کالا قبلاً ثبت شده: <b>${esc(p.name)}</b><br>موجودی فعلی: ${F(p.qty)} — فقط تعداد ورود را بزنید.</div>`;
+    $('#wBuy').value = p.buy ? F(p.buy) : ''; $('#wSell').value = p.sell ? F(p.sell) : '';
+  } else {
+    $('#wFound').innerHTML = `<div class="found new">کالای جدید: <b>${esc($('#wName').value.trim())}</b> با این بارکد ساخته می‌شود.</div>`;
+    $('#wBuy').value = ''; $('#wSell').value = '';
+  }
+  $('#wQty').value = F(1); $('#wFields').hidden = false;
+  setTimeout(() => $('#wQty').select(), 100);
+}
+$('#wPlus').onclick = () => { $('#wQty').value = F(num($('#wQty').value) + 1); };
+$('#wMinus').onclick = () => { $('#wQty').value = F(Math.max(1, num($('#wQty').value) - 1)); };
+$('#wSave').onclick = () => {
+  const q = num($('#wQty').value), buy = num($('#wBuy').value), sell = num($('#wSell').value);
+  if (!wiz.code){ toast('اول بارکد را اسکن کنید'); return; }
+  if (q <= 0){ toast('تعداد را وارد کنید'); return; }
+  let id = wiz.pid;
+  if (!id){
+    id = newId();
+    putProduct(id, {name: $('#wName').value.trim(), code: wiz.code, cat: '', unit: 'عدد', buy, sell, qty: 0, min: 0, note: '', created: new Date().toISOString()});
+  } else {
+    const p = S.products[id];
+    if ((buy && buy !== +p.buy) || (sell && sell !== +p.sell)) putProduct(id, {...p, buy: buy || p.buy, sell: sell || p.sell});
+  }
+  const p = S.products[id];
+  addMove({id: newId(), pid: id, name: p.name, kind: 'in', qty: q, price: buy || +p.buy || 0, cost: buy || +p.buy || 0, t: new Date().toISOString(), note: 'ورود با اسکن'});
+  closeWiz(); render();
+  toast(`✓ ${F(q)} عدد «${p.name}» وارد انبار شد`);
 };
 
 go('t-prod');
