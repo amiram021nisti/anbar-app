@@ -116,6 +116,8 @@ h2{font-size:15px;margin:24px 2px 8px;font-weight:700}
 .steps div.on{background:var(--pri)}
 .ocrs{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
 .ocrs button{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;cursor:pointer;direction:ltr;font-size:14px}
+.ocrs button{position:relative}
+.ocrs button[data-order]:not([data-order=''])::after{content:attr(data-order);position:absolute;top:-7px;left:-7px;background:var(--pri);color:#fff;font-size:11px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;direction:rtl}
 .ocrs button.on{background:var(--pri2);border-color:var(--pri);color:var(--pri);font-weight:700}
 .found{padding:12px 14px;border-radius:12px;background:var(--pri2);color:var(--pri);margin-top:10px;line-height:1.8}
 .found.new{background:var(--amb2);color:var(--amb)}
@@ -272,7 +274,7 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
       <span class="lbl">مرحله ۱ از ۲ — اسم برند / کالا</span>
       <button class="btn2" id="ocrBtn">📷 عکس گرفتن از اسم برند روی بسته</button>
       <div class="ocrs" id="ocrs"></div>
-      <span class="lbl">اسم کالا (می‌توانید ویرایش کنید)</span>
+      <span class="lbl">اسم کالا — چند تگ را با هم انتخاب کنید (قابل ویرایش)</span>
       <input class="inp" id="wName" placeholder="مثلاً Tokyo Watermelon Ice">
       <span class="lbl">نیکوتین (mg) — اختیاری</span>
       <input class="inp" id="wNic" inputmode="decimal" placeholder="مثلاً 12" style="direction:ltr;text-align:right">
@@ -805,7 +807,13 @@ $('#wov').onclick = e => { if (e.target.id === 'wov') closeWiz(); };
 $('#ocrBtn').onclick = () => Android.ocr();
 window.onNativeOcr = txt => {
   let lines = []; try { lines = JSON.parse(txt || '[]'); } catch(e){}
-  lines = lines.map(x => String(x).trim()).filter(x => x.length > 1).slice(0, 10);
+  // تمیز کردن: حذف علامت‌های اضافه، متن‌های هشدار و تکراری‌ها
+  const JUNK = /warning|this product|contains nicotine|nicotine is|addictive|chemical|keep out|children|www\.|made in/i;
+  const seen = new Set();
+  lines = lines.map(x => String(x).replace(/^[\s.,:;'"*•\-–]+|[\s.,:;'"*•\-–]+$/g, '').trim())
+    .filter(x => x.length > 1 && !JUNK.test(x))
+    .filter(x => { const k = x.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
+    .slice(0, 14);
   if (!lines.length){ toast('متنی خوانده نشد؛ اسم را تایپ کنید یا دوباره عکس بگیرید'); return; }
   $('#ocrs').innerHTML = lines.map((l, i) => `<button data-i="${i}">${esc(l)}</button>`).join('');
   wiz.lines = lines;
@@ -816,11 +824,22 @@ window.onNativeOcr = txt => {
   $('#ocrs').innerHTML = wiz.lines.map((l, i) => `<button data-i="${i}">${esc(l)}</button>`).join('');
   pickLine(0);
 };
-function pickLine(i){
-  $('#wName').value = wiz.lines[i];
-  $('#ocrs').querySelectorAll('button').forEach((b, j) => b.classList.toggle('on', j === i));
+// چند تگ را می‌شود با هم انتخاب کرد؛ اسم به ترتیب انتخاب ساخته می‌شود
+function pickLine(i){ wiz.sel = [i]; drawSel(); }
+function drawSel(){
+  $('#wName').value = wiz.sel.map(i => wiz.lines[i]).join(' ');
+  $('#ocrs').querySelectorAll('button').forEach((b, j) => {
+    const k = wiz.sel.indexOf(j);
+    b.classList.toggle('on', k >= 0);
+    b.dataset.order = k >= 0 && wiz.sel.length > 1 ? fd(k + 1) : '';
+  });
 }
-$('#ocrs').onclick = e => { const b = e.target.closest('button'); if (b) pickLine(+b.dataset.i); };
+$('#ocrs').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const i = +b.dataset.i, k = wiz.sel.indexOf(i);
+  if (k >= 0) wiz.sel.splice(k, 1); else wiz.sel.push(i);
+  drawSel();
+};
 $('#wNext').onclick = () => {
   if (!$('#wName').value.trim()){ toast('اسم کالا را وارد کنید'); return; }
   wizStep(2); wizScan();
