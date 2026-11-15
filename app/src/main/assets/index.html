@@ -96,6 +96,14 @@ h2{font-size:15px;margin:24px 2px 8px;font-weight:700}
 .sheet .acts{display:flex;gap:8px;margin-top:16px}
 .sheet .acts button{flex:1;margin:0}
 .danger{color:var(--red)!important}
+.nic{display:inline-block;direction:ltr;font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:7px;background:var(--amb2);color:var(--amb);margin-inline-start:6px;vertical-align:2px}
+.nics{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.nics button{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:7px 11px;cursor:pointer;direction:ltr;font-size:13px}
+.nics button.on{background:var(--amb2);border-color:var(--amb);color:var(--amb);font-weight:700}
+.filt{display:flex;gap:6px;overflow-x:auto;margin:-2px 0 10px;padding-bottom:2px;scrollbar-width:none}
+.filt:empty{display:none}
+.filt .chip{direction:ltr}
+.filt .chip.on{background:var(--amb2);color:var(--amb)}
 .quick{display:flex;align-items:center;justify-content:center;font-size:17px;padding:17px}
 .quick small{display:block;font-weight:500;font-size:12px;opacity:.85}
 .or{text-align:center;color:var(--mut);font-size:12.5px;margin:18px 0 0;display:flex;align-items:center;gap:10px}
@@ -135,6 +143,7 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
       <button class="scan" id="scanQ" aria-label="اسکن بارکد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg></button>
       <button class="chip" id="lowBtn">رو به اتمام</button>
     </div>
+    <div class="filt" id="nicFilt"></div>
     <div id="plist"></div>
   </section>
 
@@ -200,6 +209,9 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
     <div class="grab"></div>
     <h3 id="pTitle">کالای جدید</h3>
     <span class="lbl">نام کالا *</span><input class="inp" id="f-name">
+    <span class="lbl">نیکوتین (mg) — اختیاری</span>
+    <input class="inp" id="f-nic" inputmode="decimal" placeholder="مثلاً 12" style="direction:ltr;text-align:right">
+    <div class="nics" data-for="f-nic"></div>
     <div class="row">
       <div><span class="lbl">کد / بارکد</span><div class="fld"><input class="inp" id="f-code" inputmode="text"><button class="scan" id="scanF" aria-label="اسکن بارکد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg></button></div></div>
       <div><span class="lbl">دسته‌بندی</span><input class="inp" id="f-cat" list="cats"></div>
@@ -238,7 +250,10 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
       <button class="btn2" id="ocrBtn">📷 عکس گرفتن از اسم برند روی بسته</button>
       <div class="ocrs" id="ocrs"></div>
       <span class="lbl">اسم کالا (می‌توانید ویرایش کنید)</span>
-      <input class="inp" id="wName" placeholder="مثلاً Nescafe Gold 200g">
+      <input class="inp" id="wName" placeholder="مثلاً Tokyo Watermelon Ice">
+      <span class="lbl">نیکوتین (mg) — اختیاری</span>
+      <input class="inp" id="wNic" inputmode="decimal" placeholder="مثلاً 12" style="direction:ltr;text-align:right">
+      <div class="nics" data-for="wNic"></div>
       <button class="big" id="wNext">بعدی: اسکن بارکد ←</button>
     </div>
     <div id="w2" hidden>
@@ -424,9 +439,11 @@ function allMoves(){
 function render(){ renderProducts(); renderMoves(); renderReport(); renderPicked(); }
 
 function renderProducts(){
+  renderNicFilter();
   const q = $('#q').value.trim().toLowerCase();
   let list = sortedProducts().filter(([, p]) =>
-    !q || [p.name, p.code, p.cat].some(v => (v || '').toLowerCase().includes(q)));
+    !q || [p.name, p.code, p.cat, p.nic ? p.nic + 'mg' : ''].some(v => (v || '').toLowerCase().includes(q.replace(/\s+mg/, 'mg'))));
+  if (nicSel !== null) list = list.filter(([, p]) => (p.nic || '') === nicSel);
   if (onlyLow) list = list.filter(([, p]) => isLow(p));
   const lowN = Object.values(S.products).filter(isLow).length;
   $('#lowBtn').textContent = 'رو به اتمام' + (lowN ? ' (' + F(lowN) + ')' : '');
@@ -438,7 +455,7 @@ function renderProducts(){
   el.innerHTML = list.map(([id, p]) => `
     <div class="card prod" data-id="${esc(id)}">
       <div style="min-width:0">
-        <div class="nm">${esc(p.name)}</div>
+        <div class="nm">${esc(p.name)}${nicTag(p)}</div>
         <div class="meta">${[p.code && 'کد ' + esc(p.code), p.cat && esc(p.cat)].filter(Boolean).join(' · ') || '&nbsp;'}</div>
         <div class="pr">فروش <b>${F(p.sell)}</b> · خرید ${F(p.buy)}</div>
       </div>
@@ -457,7 +474,7 @@ function renderMoves(){
     <div class="card">${[...d.items].reverse().map(m => `
       <div class="mv">
         <span class="tag ${m.kind}">${kn[m.kind]}</span>
-        <div class="info"><b>${esc(S.products[m.pid]?.name || m.name || '—')}</b>
+        <div class="info"><b>${S.products[m.pid] ? esc(S.products[m.pid].name) + nicTag(S.products[m.pid]) : esc(m.name || '—')}</b>
           <small>${hm(m.t)} · ${F(m.qty)} ${m.kind !== 'adj' ? '× ' + F(m.price) : 'واحد'}${m.note ? ' · ' + esc(m.note) : ''}</small></div>
         <div class="amt">${m.kind !== 'adj' ? F(m.qty * m.price) : ''}${m.kind === 'out' ? `<small>سود ${F((m.price - m.cost) * m.qty)}</small>` : ''}</div>
         <button class="x" data-del="${esc(d.day)}|${esc(m.id)}" aria-label="حذف">✕</button>
@@ -485,7 +502,7 @@ function renderReport(){
     T('تعداد کالاها', ps.length, '', 'قلم') + T('تعداد فروش امروز', n, '', 'مورد');
   const low = sortedProducts().filter(([, p]) => isLow(p));
   $('#lowlist').innerHTML = low.length
-    ? low.map(([id, p]) => `<div class="card prod" data-id="${esc(id)}"><div><div class="nm">${esc(p.name)}</div><div class="meta">حداقل: ${F(p.min)}</div></div><div class="qty low"><b>${F(p.qty)}</b><span>${esc(p.unit || 'عدد')}</span></div></div>`).join('')
+    ? low.map(([id, p]) => `<div class="card prod" data-id="${esc(id)}"><div><div class="nm">${esc(p.name)}${nicTag(p)}</div><div class="meta">حداقل: ${F(p.min)}</div></div><div class="qty low"><b>${F(p.qty)}</b><span>${esc(p.unit || 'عدد')}</span></div></div>`).join('')
     : `<div class="empty" style="padding:22px">همه‌ی کالاها موجودی کافی دارند 👌</div>`;
   $('#cats').innerHTML = [...new Set(ps.map(p => p.cat).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join('');
 }
@@ -507,7 +524,7 @@ document.addEventListener('click', e => {
 
 // ---------- فرم کالا ----------
 let editId = null;
-const FIELDS = ['name', 'code', 'cat', 'buy', 'sell', 'qty', 'unit', 'min', 'note'];
+const FIELDS = ['name', 'nic', 'code', 'cat', 'buy', 'sell', 'qty', 'unit', 'min', 'note'];
 const NUMS = ['buy', 'sell', 'qty', 'min'];
 function openProduct(id = null){
   editId = id; const p = id ? S.products[id] : {};
@@ -515,6 +532,7 @@ function openProduct(id = null){
   FIELDS.forEach(f => $('#f-' + f).value = NUMS.includes(f) ? (id ? F(p[f]) : '') : (p[f] || ''));
   $('#pExtra').hidden = !id;
   $('#pov').classList.add('on');
+  syncNics();
   if (!id) setTimeout(() => $('#f-name').focus(), 200);
 }
 const closeProduct = () => $('#pov').classList.remove('on');
@@ -524,6 +542,7 @@ $('#pov').onclick = e => { if (e.target.id === 'pov') closeProduct(); };
 $('#pSave').onclick = () => {
   const p = {};
   FIELDS.forEach(f => p[f] = NUMS.includes(f) ? num($('#f-' + f).value) : $('#f-' + f).value.trim());
+  p.nic = normNic(p.nic);
   if (!p.name){ toast('نام کالا را وارد کنید'); $('#f-name').focus(); return; }
   if (p.code && Object.entries(S.products).some(([i, x]) => i !== editId && x.code === p.code)){ toast('این کد برای کالای دیگری ثبت شده'); return; }
   const id = editId || newId();
@@ -559,7 +578,7 @@ function renderPicked(){
   const p = pickedId && S.products[pickedId];
   if (pickedId && !p) pickedId = null;
   $('#picked').hidden = !p; $('#pickWrap').hidden = !!p;
-  if (p) $('#picked').innerHTML = `<div><b>${esc(p.name)}</b><small>موجودی: ${F(p.qty)} ${esc(p.unit || 'عدد')}</small></div><button class="x" id="unpick">✕</button>`;
+  if (p) $('#picked').innerHTML = `<div><b>${esc(p.name)}${nicTag(p)}</b><small>موجودی: ${F(p.qty)} ${esc(p.unit || 'عدد')}</small></div><button class="x" id="unpick">✕</button>`;
   calc();
 }
 $('#picked').onclick = e => { if (e.target.id === 'unpick'){ pickedId = null; renderPicked(); $('#pq').focus(); } };
@@ -568,9 +587,9 @@ $('#pq').oninput = () => {
   if (!q){ box.hidden = true; return; }
   const exact = Object.entries(S.products).find(([, p]) => p.code && p.code.toLowerCase() === q);
   if (exact){ pick(exact[0]); return; }
-  const hits = sortedProducts().filter(([, p]) => [p.name, p.code].some(v => (v || '').toLowerCase().includes(q))).slice(0, 8);
+  const hits = sortedProducts().filter(([, p]) => [p.name, p.code, p.nic ? p.nic + 'mg' : ''].some(v => (v || '').toLowerCase().includes(q))).slice(0, 8);
   box.hidden = false;
-  box.innerHTML = hits.length ? hits.map(([id, p]) => `<div data-pick="${esc(id)}"><span>${esc(p.name)}</span><small>موجودی ${F(p.qty)}</small></div>`).join('')
+  box.innerHTML = hits.length ? hits.map(([id, p]) => `<div data-pick="${esc(id)}"><span>${esc(p.name)}${nicTag(p)}</span><small>موجودی ${F(p.qty)}</small></div>`).join('')
     : `<div style="color:var(--mut);cursor:default">پیدا نشد — اول کالا را در بخش «کالاها» اضافه کنید.</div>`;
 };
 $('#sugg').onclick = e => { const d = e.target.closest('[data-pick]'); if (d) pick(d.dataset.pick); };
@@ -610,8 +629,8 @@ async function copyOut(text, what, file){
   try { await navigator.clipboard.writeText(text); toast(what + ' کپی شد؛ در اکسل Paste کنید'); }
   catch(e){ await ask('متن زیر را انتخاب و کپی کنید:', 'بستن', text); }
 }
-$('#csvP').onclick = () => copyOut([csvRow(['کد','نام','دسته','واحد','قیمت خرید','قیمت فروش','موجودی','حداقل','توضیحات'])]
-  .concat(sortedProducts().map(([, p]) => csvRow([p.code, p.name, p.cat, p.unit, p.buy, p.sell, p.qty, p.min, p.note]))).join('\n'), 'لیست کالاها', 'kala.csv');
+$('#csvP').onclick = () => copyOut([csvRow(['کد','نام','نیکوتین (mg)','دسته','واحد','قیمت خرید','قیمت فروش','موجودی','حداقل','توضیحات'])]
+  .concat(sortedProducts().map(([, p]) => csvRow([p.code, p.name, p.nic, p.cat, p.unit, p.buy, p.sell, p.qty, p.min, p.note]))).join('\n'), 'لیست کالاها', 'kala.csv');
 $('#csvM').onclick = () => copyOut([csvRow(['تاریخ','ساعت','کالا','نوع','مقدار','قیمت واحد','جمع','سود','توضیحات'])]
   .concat(allMoves().map(m => { const d = new Date(m.t); const [y, mo, dd] = g2j(d.getFullYear(), d.getMonth()+1, d.getDate());
     return csvRow([`${y}/${pad(mo)}/${pad(dd)}`, pad(d.getHours()) + ':' + pad(d.getMinutes()), S.products[m.pid]?.name || m.name,
@@ -697,7 +716,7 @@ function quickSell(code){
   addMove({id: newId(), pid: id, name: p.name, kind: 'out', qty: 1, price: +p.sell || 0, cost: +p.buy || 0, t: new Date().toISOString(), note: 'اسکن سریع'});
   render();
   const left = (+p.qty || 0) - 1;
-  toast(`✓ ${p.name} — ${F(p.sell)} تومان · موجودی: ${F(left)}` + (left < 0 ? ' ⚠️' : ''));
+  toast(`✓ ${PN(p)} — ${F(p.sell)} تومان · موجودی: ${F(left)}` + (left < 0 ? ' ⚠️' : ''));
   if (window.Android && selling) setTimeout(() => { if (selling) scan(quickSell); }, 900);
 }
 $('#quickSell').onclick = () => { selling = true; scan(quickSell); };
@@ -712,7 +731,7 @@ function wizStep(n){
   $('#st2').classList.toggle('on', n === 2);
 }
 function openWiz(){
-  wiz = {}; $('#wName').value = ''; $('#ocrs').innerHTML = '';
+  wiz = {}; $('#wName').value = ''; $('#wNic').value = ''; syncNics(); $('#ocrs').innerHTML = '';
   $('#wCode').hidden = true; $('#wFound').innerHTML = ''; $('#wFields').hidden = true;
   $('#ocrBtn').hidden = !window.Android;
   wizStep(1); $('#wov').classList.add('on');
@@ -729,6 +748,11 @@ window.onNativeOcr = txt => {
   if (!lines.length){ toast('متنی خوانده نشد؛ اسم را تایپ کنید یا دوباره عکس بگیرید'); return; }
   $('#ocrs').innerHTML = lines.map((l, i) => `<button data-i="${i}">${esc(l)}</button>`).join('');
   wiz.lines = lines;
+  const mg = lines.join(' ').match(/(\d+(?:[.,]\d+)?)\s*mg/i);
+  if (mg){ $('#wNic').value = normNic(mg[1]); syncNics(); toast('نیکوتین ' + normNic(mg[1]) + 'mg از روی بسته خوانده شد'); }
+  wiz.lines = lines.filter(l => !/^\s*\d+(?:[.,]\d+)?\s*mg\s*(\/\s*ml)?\s*$/i.test(l));
+  if (!wiz.lines.length) wiz.lines = lines;
+  $('#ocrs').innerHTML = wiz.lines.map((l, i) => `<button data-i="${i}">${esc(l)}</button>`).join('');
   pickLine(0);
 };
 function pickLine(i){
@@ -750,10 +774,10 @@ function wizCode(code){
   wiz.pid = h ? h[0] : null;
   if (h){
     const p = h[1];
-    $('#wFound').innerHTML = `<div class="found">این کالا قبلاً ثبت شده: <b>${esc(p.name)}</b><br>موجودی فعلی: ${F(p.qty)} — فقط تعداد ورود را بزنید.</div>`;
+    $('#wFound').innerHTML = `<div class="found">این کالا قبلاً ثبت شده: <b>${esc(p.name)}</b>${nicTag(p)}<br>موجودی فعلی: ${F(p.qty)} — فقط تعداد ورود را بزنید.</div>`;
     $('#wBuy').value = p.buy ? F(p.buy) : ''; $('#wSell').value = p.sell ? F(p.sell) : '';
   } else {
-    $('#wFound').innerHTML = `<div class="found new">کالای جدید: <b>${esc($('#wName').value.trim())}</b> با این بارکد ساخته می‌شود.</div>`;
+    $('#wFound').innerHTML = `<div class="found new">کالای جدید: <b>${esc($('#wName').value.trim())}</b>${$('#wNic').value.trim() ? `<span class="nic">${esc(normNic($('#wNic').value))}mg</span>` : ''} با این بارکد ساخته می‌شود.</div>`;
     $('#wBuy').value = ''; $('#wSell').value = '';
   }
   $('#wQty').value = F(1); $('#wFields').hidden = false;
@@ -768,7 +792,7 @@ $('#wSave').onclick = () => {
   let id = wiz.pid;
   if (!id){
     id = newId();
-    putProduct(id, {name: $('#wName').value.trim(), code: wiz.code, cat: '', unit: 'عدد', buy, sell, qty: 0, min: 0, note: '', created: new Date().toISOString()});
+    putProduct(id, {name: $('#wName').value.trim(), nic: normNic($('#wNic').value), code: wiz.code, cat: '', unit: 'عدد', buy, sell, qty: 0, min: 0, note: '', created: new Date().toISOString()});
   } else {
     const p = S.products[id];
     if ((buy && buy !== +p.buy) || (sell && sell !== +p.sell)) putProduct(id, {...p, buy: buy || p.buy, sell: sell || p.sell});
@@ -776,7 +800,36 @@ $('#wSave').onclick = () => {
   const p = S.products[id];
   addMove({id: newId(), pid: id, name: p.name, kind: 'in', qty: q, price: buy || +p.buy || 0, cost: buy || +p.buy || 0, t: new Date().toISOString(), note: 'ورود با اسکن'});
   closeWiz(); render();
-  toast(`✓ ${F(q)} عدد «${p.name}» وارد انبار شد`);
+  toast(`✓ ${F(q)} عدد «${PN(p)}» وارد انبار شد`);
+};
+
+// ---------- نیکوتین ----------
+const NIC_PRESETS = ['0','3','6','12','20','25','35','50'];
+function normNic(v){ v = String(v ?? '').trim(); if (!v) return ''; const n = num(v.replace(/mg/i, '').replace(',', '.')); return n || n === 0 ? String(n) : ''; }
+const nicTag = p => p && p.nic !== undefined && p.nic !== '' ? `<span class="nic">${esc(p.nic)}mg</span>` : '';
+const PN = p => p ? p.name + (p.nic ? ' ' + p.nic + 'mg' : '') : '';
+function syncNics(){
+  document.querySelectorAll('.nics').forEach(box => {
+    const inp = $('#' + box.dataset.for), cur = normNic(inp.value);
+    box.innerHTML = NIC_PRESETS.map(n => `<button type="button" data-n="${n}" class="${n === cur ? 'on' : ''}">${n}mg</button>`).join('');
+  });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.nics button'); if (!b) return;
+  const inp = $('#' + b.parentElement.dataset.for);
+  inp.value = normNic(inp.value) === b.dataset.n ? '' : b.dataset.n; syncNics();
+});
+['f-nic', 'wNic'].forEach(id => $('#' + id).addEventListener('input', syncNics));
+let nicSel = null;
+function renderNicFilter(){
+  const vals = [...new Set(Object.values(S.products).map(p => p.nic).filter(v => v !== undefined && v !== ''))].sort((a, b) => a - b);
+  if (nicSel !== null && !vals.includes(nicSel)) nicSel = null;
+  $('#nicFilt').innerHTML = vals.length ? `<button class="chip ${nicSel === null ? 'on' : ''}" data-nf="">همه</button>` +
+    vals.map(v => `<button class="chip ${nicSel === v ? 'on' : ''}" data-nf="${esc(v)}">${esc(v)}mg</button>`).join('') : '';
+}
+$('#nicFilt').onclick = e => {
+  const b = e.target.closest('[data-nf]'); if (!b) return;
+  nicSel = b.dataset.nf === '' ? null : b.dataset.nf; renderProducts();
 };
 
 go('t-prod');
