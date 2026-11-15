@@ -284,6 +284,7 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
     <div id="w2" hidden>
       <span class="lbl">مرحله ۲ از ۲ — بارکد</span>
       <button class="btn2" id="wScan">📷 اسکن بارکد</button>
+      <button class="btn2" id="wNoCode" style="font-weight:500;color:var(--mut)">ادامه بدون بارکد</button>
       <div class="card codebox" id="wCode" hidden></div>
       <div id="wFound"></div>
       <div id="wFields" hidden>
@@ -293,6 +294,8 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
           <div><span class="lbl">قیمت خرید (هر عدد)</span><input class="inp money" id="wBuy" inputmode="decimal"></div>
           <div><span class="lbl">قیمت فروش</span><input class="inp money" id="wSell" inputmode="decimal"></div>
         </div>
+        <span class="lbl">حداقل موجودی (هشدار وقتی کمتر شد)</span>
+        <div class="stepper"><button id="wMinPlus">+</button><input class="inp" id="wMin" inputmode="decimal" placeholder="مثلاً ۳"><button id="wMinMinus">−</button></div>
         <button class="big" id="wSave">ثبت ورود به انبار</button>
       </div>
       <button class="btn2" id="wBack">→ برگشت به مرحله ۱</button>
@@ -563,7 +566,7 @@ function openProduct(id = null){
   if (!id) setTimeout(() => $('#f-name').focus(), 200);
 }
 const closeProduct = () => $('#pov').classList.remove('on');
-$('#fab').onclick = () => openProduct();
+$('#fab').onclick = () => openWiz();
 $('#pCancel').onclick = closeProduct;
 $('#pov').onclick = e => { if (e.target.id === 'pov') closeProduct(); };
 $('#pSave').onclick = () => {
@@ -849,33 +852,36 @@ function wizScan(){ scan(code => wizCode(code)); }
 $('#wScan').onclick = wizScan;
 function wizCode(code){
   wiz.code = code;
-  $('#wCode').hidden = false; $('#wCode').textContent = code;
-  const h = byCodeNic(code, normNic($('#wNic').value));
+  $('#wCode').hidden = !code; $('#wCode').textContent = code;
+  const h = code ? byCodeNic(code, normNic($('#wNic').value)) : sortedProducts().find(([, p]) => !p.code && p.name.toLowerCase() === $('#wName').value.trim().toLowerCase() && (p.nic || '') === normNic($('#wNic').value));
   wiz.pid = h ? h[0] : null;
   if (h){
     const p = h[1];
     $('#wFound').innerHTML = `<div class="found">این کالا قبلاً ثبت شده: <b>${esc(p.name)}</b>${nicTag(p)}<br>موجودی فعلی: ${F(p.qty)} — فقط تعداد ورود را بزنید.</div>`;
-    $('#wBuy').value = p.buy ? F(p.buy) : ''; $('#wSell').value = p.sell ? F(p.sell) : '';
+    $('#wBuy').value = p.buy ? F(p.buy) : ''; $('#wSell').value = p.sell ? F(p.sell) : ''; $('#wMin').value = p.min ? F(p.min) : '';
   } else {
-    $('#wFound').innerHTML = `<div class="found new">کالای جدید: <b>${esc($('#wName').value.trim())}</b>${$('#wNic').value.trim() ? `<span class="nic">${esc(normNic($('#wNic').value))}mg</span>` : ''} با این بارکد ساخته می‌شود.</div>`;
-    $('#wBuy').value = ''; $('#wSell').value = '';
+    $('#wFound').innerHTML = `<div class="found new">کالای جدید: <b>${esc($('#wName').value.trim())}</b>${$('#wNic').value.trim() ? `<span class="nic">${esc(normNic($('#wNic').value))}mg</span>` : ''} ${code ? 'با این بارکد' : 'بدون بارکد'} ساخته می‌شود.</div>`;
+    $('#wBuy').value = ''; $('#wSell').value = ''; $('#wMin').value = '';
   }
   $('#wQty').value = F(1); $('#wFields').hidden = false;
   setTimeout(() => $('#wQty').select(), 100);
 }
+$('#wNoCode').onclick = () => wizCode('');
+$('#wMinPlus').onclick = () => { $('#wMin').value = F(num($('#wMin').value) + 1); };
+$('#wMinMinus').onclick = () => { $('#wMin').value = F(Math.max(0, num($('#wMin').value) - 1)); };
 $('#wPlus').onclick = () => { $('#wQty').value = F(num($('#wQty').value) + 1); };
 $('#wMinus').onclick = () => { $('#wQty').value = F(Math.max(1, num($('#wQty').value) - 1)); };
 $('#wSave').onclick = () => {
-  const q = num($('#wQty').value), buy = num($('#wBuy').value), sell = num($('#wSell').value);
-  if (!wiz.code){ toast('اول بارکد را اسکن کنید'); return; }
+  const q = num($('#wQty').value), buy = num($('#wBuy').value), sell = num($('#wSell').value), min = num($('#wMin').value);
+  if (wiz.code === undefined){ toast('اول بارکد را اسکن کنید'); return; }
   if (q <= 0){ toast('تعداد را وارد کنید'); return; }
   let id = wiz.pid;
   if (!id){
     id = newId();
-    putProduct(id, {name: $('#wName').value.trim(), nic: normNic($('#wNic').value), code: wiz.code, cat: '', unit: 'عدد', buy, sell, qty: 0, min: 0, note: '', created: new Date().toISOString()});
+    putProduct(id, {name: $('#wName').value.trim(), nic: normNic($('#wNic').value), code: wiz.code, cat: '', unit: 'عدد', buy, sell, qty: 0, min, note: '', created: new Date().toISOString()});
   } else {
     const p = S.products[id];
-    if ((buy && buy !== +p.buy) || (sell && sell !== +p.sell)) putProduct(id, {...p, buy: buy || p.buy, sell: sell || p.sell});
+    if ((buy && buy !== +p.buy) || (sell && sell !== +p.sell) || min !== (+p.min || 0)) putProduct(id, {...p, buy: buy || p.buy, sell: sell || p.sell, min});
   }
   const p = S.products[id];
   addMove({id: newId(), pid: id, name: p.name, kind: 'in', qty: q, price: buy || +p.buy || 0, cost: buy || +p.buy || 0, t: new Date().toISOString(), note: 'ورود با اسکن'});
