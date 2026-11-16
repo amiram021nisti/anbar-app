@@ -76,16 +76,26 @@ public class MainActivity extends AppCompatActivity {
                     InputImage img = InputImage.fromFilePath(this, photoUri);
                     TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).process(img)
                             .addOnSuccessListener(t -> {
-                                // بزرگ‌ترین نوشته‌ها (معمولاً اسم برند) اول بیایند
-                                List<Object[]> lines = new ArrayList<>();
-                                for (Text.TextBlock b : t.getTextBlocks())
-                                    for (Text.Line l : b.getLines()) {
-                                        Rect r = l.getBoundingBox();
-                                        lines.add(new Object[]{l.getText(), r == null ? 0 : r.height()});
-                                    }
-                                lines.sort((a, c) -> Integer.compare((int) c[1], (int) a[1]));
+                                // هر خط با اندازه و جایش فرستاده می‌شود تا صفحه مرتب و تمیزش کند
                                 JSONArray arr = new JSONArray();
-                                for (Object[] o : lines) arr.put(o[0]);
+                                int bi = 0;
+                                for (Text.TextBlock b : t.getTextBlocks()) {
+                                    for (Text.Line l : b.getLines()) {
+                                        try {
+                                            Rect r = l.getBoundingBox();
+                                            JSONObject o = new JSONObject();
+                                            o.put("t", l.getText());
+                                            o.put("h", r == null ? 0 : r.height());
+                                            o.put("x", r == null ? 0 : r.left);
+                                            o.put("y", r == null ? 0 : r.top);
+                                            o.put("b", bi);
+                                            float c = l.getConfidence();
+                                            o.put("c", Float.isNaN(c) ? 1 : c);
+                                            arr.put(o);
+                                        } catch (Exception ignored) { }
+                                    }
+                                    bi++;
+                                }
                                 callJs("onNativeOcr", arr.toString());
                             })
                             .addOnFailureListener(e -> callJs("onNativeOcr", "[]"));

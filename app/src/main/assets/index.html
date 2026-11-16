@@ -842,24 +842,78 @@ $('#quickIn').onclick = openWiz;
 $('#wCancel').onclick = closeWiz;
 $('#wov').onclick = e => { if (e.target.id === 'wov') closeWiz(); };
 $('#ocrBtn').onclick = () => Android.ocr();
+// ---------- خواندن متن بسته: تمیزکاری، مرتب‌سازی و اصلاح غلط‌ها ----------
+const VOCAB_BASE = ('ARTERY FEROCIOUS FUSION ELF BAR ELFBAR LOST MARY GEEK VOZOL TOKYO HQD YUOTO VAPORESSO SMOK UWELL CALIBURN OXVA XROS VOOPOO ' +
+  'FUMMO MYLE IGET KUZ SKE CRYSTAL PYNE NASTY JUUL RELX TURBO PUFFS PUFF DUAL FLAVOURS FLAVORS FLAVOR ULTRA PRO MAX MINI PLUS KING WAKA RANDM ' +
+  'TORNADO DRAGBAR AROMA BOX DISPOSABLE MODE NICOTINE SALT POD PODS KIT ' +
+  'STRAWBERRY MANGO WATERMELON ICED GRAPE MINT MENTHOL BLUEBERRY BLUE RAZZ RASPBERRY TOBACCO ALMOND APPLE PEACH LEMON LIME ORANGE ' +
+  'PINEAPPLE BANANA CHERRY COLA KIWI PASSION FRUIT GUAVA LYCHEE MELON BERRY BERRIES MIXED TROPICAL VANILLA COFFEE CREAM CUSTARD CARAMEL ' +
+  'CHOCOLATE HONEYDEW DOUBLE SOUR GUMMY BUBBLE ENERGY DRINK SPEARMINT PEPPERMINT COOL FROST FROZEN GREEN BLACK PINK LEMONADE PUNCH ' +
+  'CANDY POMEGRANATE BLACKCURRANT CRANBERRY COCONUT DRAGON DRAGONFRUIT PEAR PLUM APRICOT NECTARINE PAPAYA MOJITO SAKURA YAKULT JASMINE ' +
+  'HAZELNUT CINNAMON CLASSIC GOLD SILVER APPLES MILK YOGURT CHEESECAKE TANGERINE GRAPEFRUIT WILD SMOOTHIE SLUSH SHAKE MIAMI').split(' ');
+function lev(a, b){
+  if (Math.abs(a.length - b.length) > 2) return 9;
+  const d = Array.from({length: a.length + 1}, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+// کلمه‌هایی که شما در اسم کالاها نوشته‌اید هم یاد گرفته می‌شوند
+function vocab(){
+  const v = new Set(VOCAB_BASE);
+  Object.values(S.products).forEach(p => String(p.name || '').toUpperCase().split(/[^A-Z0-9]+/).forEach(w => { if (w.length >= 3) v.add(w); }));
+  return [...v];
+}
+function fixWord(w, V){
+  // ۵OK / 6OK → 60K (حرف O به جای صفر)
+  if (/^\d[\dOo]*[Kk]$/.test(w)) return w.replace(/[Oo]/g, '0').toUpperCase();
+  const up = w.toUpperCase();
+  if (!/^[A-Z]{4,}$/.test(up)) return w;
+  if (V.includes(up)) return w;
+  const max = up.length >= 7 ? 2 : 1;
+  let best = null, bd = 9;
+  for (const v of V){ if (v.length < 4) continue; const d = lev(up, v); if (d < bd){ bd = d; best = v; } }
+  if (best && bd <= max){
+    const isUp = w === up, isCap = w[0] === up[0] && w.slice(1) === w.slice(1).toLowerCase();
+    return isUp ? best : isCap ? best[0] + best.slice(1).toLowerCase() : best.toLowerCase();
+  }
+  return w;
+}
 window.onNativeOcr = txt => {
-  let lines = []; try { lines = JSON.parse(txt || '[]'); } catch(e){}
-  // تمیز کردن: حذف علامت‌های اضافه، متن‌های هشدار و تکراری‌ها
-  const JUNK = /warning|this product|contains nicotine|nicotine is|addictive|chemical|keep out|children|www\.|made in/i;
+  let raw = []; try { raw = JSON.parse(txt || '[]'); } catch(e){}
+  let items = raw.map((x, i) => typeof x === 'string' ? {t: x, h: 0, x: 0, y: i, b: i, c: 1} : x);
+  const JUNK = /warning|this product|contains|nicotine is|addictive|chemical|keep out|children|www\.|made in|manufactur|batch|lot\b|exp\b|ingredient|propylene|glycerin|^\W*$/i;
+  const V = vocab();
+  const allText = items.map(o => String(o.t)).join(' ');
+  const maxH = Math.max(0, ...items.map(o => o.h || 0));
+  items = items.map(o => ({...o, t: String(o.t)
+      .replace(/^[\s.,:;'"*•\-–_|~]+|[\s.,:;'"*•\-–_|~]+$/g, '').replace(/\s{2,}/g, ' ').trim()
+      .replace(/^[A-Za-z]\s+(?=\S{2,})/, '').replace(/(\S{2,})\s+[A-Za-z]$/, '$1')}))
+    .filter(o => o.t.length > 1 && !JUNK.test(o.t))
+    // نوشته‌های خیلی ریز (توضیحات و هشدارها) حذف می‌شوند
+    .filter(o => !maxH || !o.h || o.h >= maxH * 0.18)
+    // خط‌هایی که بیشترشان علامت است حذف می‌شوند
+    .filter(o => (o.t.match(/[A-Za-z0-9]/g) || []).length >= Math.max(2, o.t.length * 0.6))
+    .map(o => ({...o, t: o.t.split(' ').map(w => fixWord(w, V)).join(' ')}));
+  // مرتب‌سازی به ترتیب خواندن: از بالا به پایین، در هر ردیف از چپ به راست
+  items.sort((p, q) => {
+    const tol = Math.max(p.h, q.h, 1) * 0.6;
+    return Math.abs(p.y - q.y) > tol ? p.y - q.y : p.x - q.x;
+  });
   const seen = new Set();
-  lines = lines.map(x => String(x).replace(/^[\s.,:;'"*•\-–]+|[\s.,:;'"*•\-–]+$/g, '').trim())
-    .filter(x => x.length > 1 && !JUNK.test(x))
-    .filter(x => { const k = x.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
-    .slice(0, 14);
-  if (!lines.length){ toast('متنی خوانده نشد؛ اسم را تایپ کنید یا دوباره عکس بگیرید'); return; }
-  $('#ocrs').innerHTML = lines.map((l, i) => `<button data-i="${i}">${esc(l)}</button>`).join('');
-  wiz.lines = lines;
-  const mg = lines.join(' ').match(/(\d+(?:[.,]\d+)?)\s*mg/i);
+  let lines = items.map(o => o.t).filter(t => { const k = t.toLowerCase().replace(/\W/g, ''); if (!k || seen.has(k)) return false; seen.add(k); return true; });
+  const mg = allText.match(/(\d+(?:[.,]\d+)?)\s*mg/i);
   if (mg){ $('#wNic').value = normNic(mg[1]); syncNics(); toast('نیکوتین ' + normNic(mg[1]) + 'mg از روی بسته خوانده شد'); }
-  wiz.lines = lines.filter(l => !/^\s*\d+(?:[.,]\d+)?\s*mg\s*(\/\s*ml)?\s*$/i.test(l));
-  if (!wiz.lines.length) wiz.lines = lines;
-  $('#ocrs').innerHTML = wiz.lines.map((l, i) => `<button data-i="${i}">${esc(l)}</button>`).join('');
-  pickLine(0);
+  lines = lines.filter(l => !/^\s*\d+(?:[.,]\d+)?\s*mg\s*(\/\s*ml)?\s*$/i.test(l)).slice(0, 16);
+  if (!lines.length){ toast('متنی خوانده نشد؛ نزدیک‌تر و صاف‌تر عکس بگیرید یا اسم را تایپ کنید'); return; }
+  wiz.lines = lines;
+  $('#ocrs').innerHTML = lines.map((l, i) => `<button data-i="${i}">${esc(l)}</button>`).join('');
+  // بزرگ‌ترین نوشته (معمولاً برند) از اول انتخاب می‌شود
+  const mh = Math.max(0, ...items.map(o => o.h || 0));
+  const big = items.find(o => !mh || (o.h || 0) >= mh * 0.5) || items[0];
+  const bi = big ? lines.findIndex(l => l === big.t) : 0;
+  pickLine(bi >= 0 ? bi : 0);
 };
 // چند تگ را می‌شود با هم انتخاب کرد؛ اسم به ترتیب انتخاب ساخته می‌شود
 function pickLine(i){ wiz.sel = [i]; drawSel(); }
