@@ -102,6 +102,15 @@ h2{font-size:15px;margin:24px 2px 8px;font-weight:700}
 .sheet .acts button{flex:1;margin:0}
 .danger{color:var(--red)!important}
 .nic{display:inline-block;direction:ltr;font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:7px;background:var(--amb2);color:var(--amb);margin-inline-start:6px;vertical-align:2px}
+.brow{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.brow.ok{border-color:var(--pri)}
+.brow.unsure{border-color:var(--amb);background:var(--amb2)}
+.brow.none{border-color:var(--red);background:var(--red2)}
+.brow .raw{font-size:12px;color:var(--mut);direction:ltr;text-align:right}
+.brow .line{display:flex;gap:8px;align-items:center;margin-top:6px}
+.brow select{flex:1;min-width:0;font-size:13px;direction:ltr;color:var(--mut);padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+.brow .bq{width:64px;flex:none;text-align:center;font-weight:800;font-size:17px;padding:9px 4px}
+.brow .x{flex:none}
 .catb{display:inline-block;direction:ltr;font-size:12px;font-weight:800;letter-spacing:.5px;padding:2px 8px;border-radius:7px;background:#2f4a8a;color:#fff;margin:0 0 0 7px;vertical-align:1px}
 @media (prefers-color-scheme:dark){.catb{background:#6f8fe0;color:#101318}}
 .catbig{font-size:30px;font-weight:900;direction:ltr;text-align:right;letter-spacing:1px;color:#2f4a8a}
@@ -177,6 +186,7 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
       <button data-k="in" class="in">خرید / ورود به انبار</button>
     </div>
     <button class="big out quick" id="quickSell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:22px;height:22px;vertical-align:-5px;margin-left:6px"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg><span>اسکن سریع فروش<small>اسکن ← نیکوتین ← تأیید</small></span></button>
+    <button class="btn2" id="paperBtn" hidden style="margin-top:10px;padding:14px">📝 ثبت فروش‌ها از روی لیست کاغذی (عکس)</button>
     <button class="big quick" id="quickIn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:22px;height:22px;vertical-align:-5px;margin-left:6px"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg><span>ورود کالا با اسکن<small>مرحله ۱: اسم برند · مرحله ۲: بارکد</small></span></button>
     <div class="or">یا دستی ثبت کنید</div>
     <span class="lbl">کالا</span>
@@ -260,6 +270,20 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
       <button class="btn2 danger" id="pDel">حذف کالا</button>
     </div>
     <button class="btn2" id="pCancel">انصراف</button>
+  </div>
+</div>
+
+<!-- فروش از روی لیست کاغذی -->
+<div class="ov" id="bov">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3>📝 فروش‌های لیست کاغذی</h3>
+    <p class="note" style="margin:4px 2px 10px" id="bHelp">هر ردیف را چک کنید؛ اگر کالا اشتباه پیدا شده، از لیست درستش را انتخاب کنید.</p>
+    <div id="bList"></div>
+    <button class="btn2" id="bAdd" style="font-weight:500">+ افزودن ردیف</button>
+    <button class="big out" id="bOk">کم کردن از انبار</button>
+    <button class="btn2" id="bRetake">📷 عکس دوباره</button>
+    <button class="btn2" id="bCancel">انصراف</button>
   </div>
 </div>
 
@@ -757,6 +781,7 @@ window.onBack = () => {
   if ($('#pov').classList.contains('on')){ closeProduct(); return true; }
   if ($('#wov').classList.contains('on')){ closeWiz(); return true; }
   if ($('#cov').classList.contains('on')){ closeCat(); return true; }
+  if ($('#bov').classList.contains('on')){ closeBatch(); return true; }
   if ($('#sov').classList.contains('on')){ closeSale(true); return true; }
   if (tab !== 't-prod'){ go('t-prod'); return true; }
   return false;
@@ -781,14 +806,15 @@ function quickSell(code){
   sale = {code, v};
   const p0 = v[0][1];
   $('#sName').textContent = p0.name;
-  $('#sCat').innerHTML = catMini(v[0][0]);
+  $('#sCat').innerHTML = p0.cat ? `<div style="margin-top:8px"><span class="catb" style="font-size:15px;padding:4px 12px">${esc(p0.cat)}</span></div>` : '';
+  $('#sCode').hidden = true;
   $('#sCode').textContent = code;
   $('#sQty').value = F(1);
   $('#sNic').value = v.length === 1 ? (p0.nic || '') : '';
   $('#sNicBox').innerHTML = v.map(([, p]) => `<button type="button" data-n="${esc(p.nic || '')}">${p.nic ? esc(p.nic) + 'mg' : 'بدون نیکوتین'} <small>(${F(p.qty)})</small></button>`).join('');
   saleSync();
   $('#sov').classList.add('on');
-  setTimeout(() => { $('#sNic').focus(); $('#sNic').select(); }, 150);
+  if (v.length > 1) setTimeout(() => { $('#sNic').focus(); $('#sNic').select(); }, 150);
 }
 function saleVariant(){ return sale && sale.v.find(([, p]) => (p.nic || '') === normNic($('#sNic').value)); }
 function saleSync(){
@@ -1114,6 +1140,115 @@ function renderCatFilter(){
 $('#catFilt').onclick = e => {
   const b = e.target.closest('[data-cf]'); if (!b) return;
   catSel = b.dataset.cf === '' ? null : b.dataset.cf; renderProducts();
+};
+
+// ---------- فروش از روی لیست کاغذی (عکس آخر شب) ----------
+let ocrMode = 'name';
+const _onOcrName = window.onNativeOcr;
+window.onNativeOcr = txt => { if (ocrMode === 'list'){ ocrMode = 'name'; paperList(txt); } else _onOcrName(txt); };
+if (window.Android) $('#paperBtn').hidden = false;
+$('#paperBtn').onclick = () => { ocrMode = 'list'; toast('از لیست عکس بگیرید — هر کالا در یک خط'); Android.ocr(); };
+const toks = t => String(t).toUpperCase().replace(/(\d)([A-Z])/g, '$1 $2').replace(/([A-Z])(\d)/g, '$1 $2').split(/[^A-Z0-9]+/).filter(Boolean);
+function sim(a, b){ if (a === b) return 1; const d = lev(a, b); return d > 8 ? 0 : 1 - d / Math.max(a.length, b.length); }
+// یک خط نوشته را به (کالا، نیکوتین، تعداد) تبدیل می‌کند
+function parseLine(line){
+  let t = ' ' + String(line).replace(/[|]/g, '1') + ' ';
+  let nic = null, qty = 1;
+  const mg = t.match(/(\d+(?:[.,]\d+)?)\s*mg/i); if (mg){ nic = normNic(mg[1]); t = t.replace(mg[0], ' '); }
+  const q1 = t.match(/(?:^|\s)(?:x\s*|×\s*|\*\s*)?(\d{1,3})\s*(?:x|×|pcs|pc|عدد)?\s*$/i) || t.match(/^\s*(\d{1,3})\s*(?:x|×|-|\.|\))?\s+(?=[a-z])/i);
+  if (q1){ qty = +q1[1] || 1; t = t.replace(q1[0], ' '); }
+  return {q: t.replace(/[-–:=.,()]+/g, ' ').replace(/\s+/g, ' ').trim(), nic, qty};
+}
+function rankProducts(q, nic){
+  const qt = toks(q).filter(w => w.length >= 2 && !/^\d{1,3}$/.test(w));
+  if (!qt.length) return [];
+  return sortedProducts().map(([id, p]) => {
+    const pt = toks(p.name + ' ' + (p.cat || ''));
+    let sc = 0;
+    qt.forEach(w => { let b = 0; pt.forEach(x => { b = Math.max(b, sim(w, x)); }); if (b >= 0.55) sc += b; });
+    sc = sc / qt.length;
+    const extra = pt.filter(x => !qt.some(w => sim(w, x) >= 0.55)).length;
+    sc -= extra * 0.01;
+    if (nic !== null && nic !== ''){ sc += (p.nic || '') === nic ? 0.15 : -0.2; }
+    return {id, sc};
+  }).sort((a, b) => b.sc - a.sc);
+}
+let batch = [];
+function paperList(txt){
+  let raw = []; try { raw = JSON.parse(txt || '[]'); } catch(e){}
+  let items = raw.map((x, i) => typeof x === 'string' ? {t: x, h: 10, x: 0, y: i * 20, p: 0} : x).filter(o => (o.p || 0) === 0);
+  // تکه‌های یک ردیف (مثلاً اسم و عدد که جدا خوانده شده‌اند) به هم وصل می‌شوند
+  items.sort((a, b) => a.y - b.y);
+  const rows = [];
+  items.forEach(o => {
+    const r = rows.find(r => Math.abs(r.y - o.y) < Math.max(Math.min(r.h, o.h), 1) * 0.6);
+    if (r){ r.parts.push(o); } else rows.push({y: o.y, h: o.h || 10, parts: [o]});
+  });
+  const lines = rows.map(r => r.parts.sort((a, b) => a.x - b.x).map(o => o.t).join(' ').trim()).filter(l => /[a-z]{2,}/i.test(l));
+  if (!lines.length){ toast('نوشته‌ای خوانده نشد؛ نزدیک‌تر و با نور بهتر عکس بگیرید'); return; }
+  batch = lines.map(l => {
+    const pr = parseLine(l), rk = rankProducts(pr.q, pr.nic);
+    const best = rk[0], second = rk[1];
+    const ok = best && best.sc >= 0.55;
+    const sure = ok && (!second || best.sc - second.sc >= 0.08) && best.sc >= 0.75;
+    return {raw: l, qty: pr.qty, id: ok ? best.id : '', cands: rk.slice(0, 8).filter(c => c.sc > 0.2).map(c => c.id), state: !ok ? 'none' : sure ? 'ok' : 'unsure'};
+  });
+  drawBatch();
+  $('#bov').classList.add('on');
+}
+function prodOptions(sel, cands){
+  const top = cands.filter(id => S.products[id]);
+  const rest = sortedProducts().map(([id]) => id).filter(id => !top.includes(id));
+  const opt = id => `<option value="${esc(id)}" ${id === sel ? 'selected' : ''}>${esc(PN(S.products[id]))}${S.products[id].cat ? ' · ' + esc(S.products[id].cat) : ''}</option>`;
+  return `<option value="" ${!sel ? 'selected' : ''}>— تغییر / انتخاب کالا —</option>` +
+    (top.length ? `<optgroup label="پیشنهادها">${top.map(opt).join('')}</optgroup>` : '') +
+    `<optgroup label="همه‌ی کالاها">${rest.map(opt).join('')}</optgroup>`;
+}
+function drawBatch(){
+  $('#bList').innerHTML = batch.map((r, i) => `<div class="brow ${r.id ? r.state : 'none'}" data-i="${i}">
+      ${r.raw ? `<div class="raw">📝 ${esc(r.raw)}</div>` : ''}
+      <div style="margin-top:4px;font-weight:700;direction:ltr;text-align:right">${r.id && S.products[r.id] ? esc(PN(S.products[r.id])) + catTag(S.products[r.id]) : '<span style="color:var(--red)">کالا پیدا نشد — از لیست انتخاب کنید</span>'}</div>
+      <div class="line">
+        <select data-k="id">${prodOptions(r.id, r.cands)}</select>
+        <input class="inp bq" data-k="qty" inputmode="numeric" value="${F(r.qty)}">
+        <button class="x" data-k="del" aria-label="حذف">✕</button>
+      </div></div>`).join('') || '<div class="empty" style="padding:20px">ردیفی نیست</div>';
+  const n = batch.filter(r => r.id && r.qty > 0), u = n.reduce((s, r) => s + r.qty, 0);
+  const bad = batch.filter(r => !r.id).length;
+  $('#bOk').textContent = `کم کردن از انبار — ${F(n.length)} کالا، ${F(u)} عدد`;
+  $('#bOk').disabled = !n.length;
+  $('#bHelp').innerHTML = `${F(batch.length)} ردیف خوانده شد.` + (bad ? ` <b style="color:var(--red)">${F(bad)} ردیف پیدا نشد</b> — از لیست انتخاب کنید یا حذفش کنید.` : '') +
+    ' ردیف‌های زرد را حتماً چک کنید.';
+}
+$('#bList').addEventListener('change', e => {
+  const row = e.target.closest('.brow'); if (!row) return; const r = batch[+row.dataset.i];
+  if (e.target.dataset.k === 'id'){ r.id = e.target.value; r.state = 'ok'; drawBatch(); }
+});
+$('#bList').addEventListener('input', e => {
+  const row = e.target.closest('.brow'); if (!row || e.target.dataset.k !== 'qty') return;
+  batch[+row.dataset.i].qty = num(e.target.value);
+  const n = batch.filter(r => r.id && r.qty > 0), u = n.reduce((s, r) => s + r.qty, 0);
+  $('#bOk').textContent = `کم کردن از انبار — ${F(n.length)} کالا، ${F(u)} عدد`;
+});
+$('#bList').addEventListener('click', e => {
+  const b = e.target.closest('[data-k=del]'); if (!b) return;
+  batch.splice(+b.closest('.brow').dataset.i, 1); drawBatch();
+});
+$('#bAdd').onclick = () => { batch.push({raw: '', qty: 1, id: '', cands: [], state: 'ok'}); drawBatch(); };
+const closeBatch = () => $('#bov').classList.remove('on');
+$('#bCancel').onclick = closeBatch;
+$('#bRetake').onclick = () => { closeBatch(); $('#paperBtn').click(); };
+$('#bOk').onclick = async () => {
+  const rows = batch.filter(r => r.id && r.qty > 0 && S.products[r.id]);
+  if (!rows.length) return;
+  if (!(await ask(`${F(rows.length)} کالا (${F(rows.reduce((s, r) => s + r.qty, 0))} عدد) از انبار کم شود؟`, 'کم کن'))) return;
+  const t = new Date().toISOString();
+  rows.forEach(r => {
+    const p = S.products[r.id];
+    addMove({id: newId(), pid: r.id, name: p.name, kind: 'out', qty: r.qty, price: +p.sell || 0, cost: +p.buy || 0, t, note: 'لیست کاغذی'});
+  });
+  closeBatch(); render();
+  toast(`✓ ${F(rows.length)} کالا از انبار کم شد`);
 };
 
 go('t-prod');
