@@ -24,6 +24,9 @@ import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import com.google.mlkit.vision.barcode.common.Barcode;
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanOptions;
 
@@ -106,6 +109,20 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private boolean gmsFailed = false;
+
+    // اسکنر پشتیبان (اگر سرویس گوگل در دسترس نبود)
+    private void zxingScan() {
+        ScanOptions o = new ScanOptions();
+        o.setPrompt("بارکد را داخل کادر بگیرید — کمی دورتر نگه دارید تا فوکوس شود");
+        o.setBeepEnabled(true);
+        o.setOrientationLocked(false);
+        o.setCaptureActivity(ScanActivity.class);
+        o.setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES);
+        o.addExtra("TRY_HARDER", true);
+        scanner.launch(o);
+    }
+
     private void callJs(String fn, String arg) {
         String js = "window." + fn + "&&window." + fn + "(" + JSONObject.quote(arg) + ")";
         web.post(() -> web.evaluateJavascript(js, null));
@@ -152,11 +169,21 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void scan() {
             runOnUiThread(() -> {
-                ScanOptions o = new ScanOptions();
-                o.setPrompt("بارکد را داخل کادر بگیرید");
-                o.setBeepEnabled(true);
-                o.setOrientationLocked(false);
-                scanner.launch(o);
+                if (gmsFailed) { zxingScan(); return; }
+                try {
+                    // اسکنر گوگل: فوکوس و زوم خودکار، خواندن سریع‌تر
+                    GmsBarcodeScannerOptions o = new GmsBarcodeScannerOptions.Builder()
+                            .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+                            .enableAutoZoom()
+                            .build();
+                    GmsBarcodeScanning.getClient(MainActivity.this, o).startScan()
+                            .addOnSuccessListener(b -> callJs("onNativeScan", b.getRawValue() == null ? "" : b.getRawValue()))
+                            .addOnCanceledListener(() -> callJs("onNativeScan", ""))
+                            .addOnFailureListener(e -> { gmsFailed = true; zxingScan(); });
+                } catch (Exception e) {
+                    gmsFailed = true;
+                    zxingScan();
+                }
             });
         }
 
