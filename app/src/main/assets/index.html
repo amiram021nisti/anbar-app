@@ -850,7 +850,8 @@ const VOCAB_BASE = ('ARTERY FEROCIOUS FUSION ELF BAR ELFBAR LOST MARY GEEK VOZOL
   'PINEAPPLE BANANA CHERRY COLA KIWI PASSION FRUIT GUAVA LYCHEE MELON BERRY BERRIES MIXED TROPICAL VANILLA COFFEE CREAM CUSTARD CARAMEL ' +
   'CHOCOLATE HONEYDEW DOUBLE SOUR GUMMY BUBBLE ENERGY DRINK SPEARMINT PEPPERMINT COOL FROST FROZEN GREEN BLACK PINK LEMONADE PUNCH ' +
   'CANDY POMEGRANATE BLACKCURRANT CRANBERRY COCONUT DRAGON DRAGONFRUIT PEAR PLUM APRICOT NECTARINE PAPAYA MOJITO SAKURA YAKULT JASMINE ' +
-  'HAZELNUT CINNAMON CLASSIC GOLD SILVER APPLES MILK YOGURT CHEESECAKE TANGERINE GRAPEFRUIT WILD SMOOTHIE SLUSH SHAKE MIAMI').split(' ');
+  'HAZELNUT CINNAMON CLASSIC GOLD SILVER APPLES MILK YOGURT CHEESECAKE TANGERINE GRAPEFRUIT WILD SMOOTHIE SLUSH SHAKE MIAMI ' +
+  'CROWN FAKHER MEGAMAX MEGA LUSH NOVA SWISS PRIME TITAN ZERO HYPE DUBAI EMIRATES ICE BAR TEA GUM RED MAX PRO KIT POD AL ELF SKE HQD KUZ NEW ONE TWO DUO').split(' ');
 function lev(a, b){
   if (Math.abs(a.length - b.length) > 2) return 9;
   const d = Array.from({length: a.length + 1}, (_, i) => [i]);
@@ -883,14 +884,20 @@ function fixWord(w, V){
 window.onNativeOcr = txt => {
   let raw = []; try { raw = JSON.parse(txt || '[]'); } catch(e){}
   let items = raw.map((x, i) => typeof x === 'string' ? {t: x, h: 0, x: 0, y: i, b: i, c: 1} : x);
-  const JUNK = /warning|this product|contains|nicotine is|addictive|chemical|keep out|children|www\.|made in|manufactur|batch|lot\b|exp\b|ingredient|propylene|glycerin|^\W*$/i;
+  const JUNK = /warning|this product|contains|nicotine is|addictive|chemical|keep out|children|www\.|made in|manufactur|batch|lot\b|exp\b|ingredient|propylene|glycerin|forbidden|sell this|not for sale|under 18|18\+|^\W*$/i;
   const V = vocab();
   const allText = items.map(o => String(o.t)).join(' ');
-  const maxH = Math.max(0, ...items.map(o => o.h || 0));
+  const hs = items.map(o => o.h || 0).filter(Boolean).sort((a, b) => a - b);
+  const maxH = hs.length ? Math.min(hs[hs.length - 1] * 0.18, hs[Math.floor(hs.length / 2)] * 0.6) / 0.18 : 0;
   items = items.map(o => ({...o, t: String(o.t)
       .replace(/^[\s.,:;'"*•\-–_|~]+|[\s.,:;'"*•\-–_|~]+$/g, '').replace(/\s{2,}/g, ' ').trim()
       .replace(/^[A-Za-z]\s+(?=\S{2,})/, '').replace(/(\S{2,})\s+[A-Za-z]$/, '$1')}))
+    // نوشته‌های عربی و فارسی کنار گذاشته می‌شوند
+    .map(o => ({...o, t: o.t.replace(/[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]+/g, ' ').replace(/\s{2,}/g, ' ').trim()}))
     .filter(o => o.t.length > 1 && !JUNK.test(o.t))
+    // خطوطی که با اطمینان کم خوانده شده‌اند (معمولاً خط عربی یا طرح) حذف می‌شوند
+    .filter(o => o.c === undefined || o.c >= 0.45)
+    .filter(o => o.t.length > 3 || /\d/.test(o.t) || V.includes(o.t.toUpperCase()))
     // نوشته‌های خیلی ریز (توضیحات و هشدارها) حذف می‌شوند
     .filter(o => !maxH || !o.h || o.h >= maxH * 0.18)
     // خط‌هایی که بیشترشان علامت است حذف می‌شوند
@@ -910,8 +917,10 @@ window.onNativeOcr = txt => {
   wiz.lines = lines;
   $('#ocrs').innerHTML = lines.map((l, i) => `<button data-i="${i}">${esc(l)}</button>`).join('');
   // بزرگ‌ترین نوشته (معمولاً برند) از اول انتخاب می‌شود
-  const mh = Math.max(0, ...items.map(o => o.h || 0));
-  const big = items.find(o => !mh || (o.h || 0) >= mh * 0.5) || items[0];
+  // انتخاب خودکار: اولین نوشته‌ی درشت که اسم برند شناخته‌شده دارد
+  const hh = items.map(o => o.h || 0).sort((a, b) => b - a), ref = hh[1] || hh[0] || 0;
+  const cands = items.filter(o => !ref || (o.h || 0) >= ref * 0.5);
+  const big = cands.find(o => o.t.toUpperCase().split(/\s+/).some(w => w.length >= 4 && /^[A-Z]+$/.test(w) && VOCAB_BASE.includes(w))) || cands[0] || items[0];
   const bi = big ? lines.findIndex(l => l === big.t) : 0;
   pickLine(bi >= 0 ? bi : 0);
 };
