@@ -72,37 +72,68 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<Uri> takePhoto =
             registerForActivityResult(new ActivityResultContracts.TakePicture(), ok -> {
                 if (!ok || photoUri == null) { callJs("onNativeOcr", "[]"); return; }
-                try {
-                    InputImage img = InputImage.fromFilePath(this, photoUri);
-                    TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).process(img)
-                            .addOnSuccessListener(t -> {
-                                // هر خط با اندازه و جایش فرستاده می‌شود تا صفحه مرتب و تمیزش کند
-                                JSONArray arr = new JSONArray();
-                                int bi = 0;
-                                for (Text.TextBlock b : t.getTextBlocks()) {
-                                    for (Text.Line l : b.getLines()) {
-                                        try {
-                                            Rect r = l.getBoundingBox();
-                                            JSONObject o = new JSONObject();
-                                            o.put("t", l.getText());
-                                            o.put("h", r == null ? 0 : r.height());
-                                            o.put("x", r == null ? 0 : r.left);
-                                            o.put("y", r == null ? 0 : r.top);
-                                            o.put("b", bi);
-                                            float c = l.getConfidence();
-                                            o.put("c", Float.isNaN(c) ? 1 : c);
-                                            arr.put(o);
-                                        } catch (Exception ignored) { }
-                                    }
-                                    bi++;
-                                }
-                                callJs("onNativeOcr", arr.toString());
-                            })
-                            .addOnFailureListener(e -> callJs("onNativeOcr", "[]"));
-                } catch (Exception e) {
-                    callJs("onNativeOcr", "[]");
-                }
+                new Thread(this::runOcr).start();
             });
+
+    // متن عکس دو بار خوانده می‌شود: یک بار با کیفیت کامل (برای نوشته‌های ریز)
+    // و یک بار کوچک‌شده (برای عددها و نوشته‌های خیلی درشت مثل 50K) و نتیجه‌ها ترکیب می‌شوند
+    private void runOcr() {
+        JSONArray arr = new JSONArray();
+        try {
+            int rot = 0;
+            try (InputStream in = getContentResolver().openInputStream(photoUri)) {
+                android.media.ExifInterface ex = new android.media.ExifInterface(in);
+                int o = ex.getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, 1);
+                rot = o == 6 ? 90 : o == 3 ? 180 : o == 8 ? 270 : 0;
+            } catch (Exception ignored) { }
+            android.graphics.BitmapFactory.Options bo = new android.graphics.BitmapFactory.Options();
+            bo.inJustDecodeBounds = true;
+            try (InputStream in = getContentResolver().openInputStream(photoUri)) { android.graphics.BitmapFactory.decodeStream(in, null, bo); }
+            int full = Math.max(bo.outWidth, bo.outHeight);
+            com.google.mlkit.vision.text.TextRecognizer rec = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+            int[] targets = {2400, 1000};
+            int pass = 0;
+            for (int target : targets) {
+                int sample = 1;
+                while (full / (sample * 2) >= target) sample *= 2;
+                android.graphics.BitmapFactory.Options o2 = new android.graphics.BitmapFactory.Options();
+                o2.inSampleSize = sample;
+                android.graphics.Bitmap bmp;
+                try (InputStream in = getContentResolver().openInputStream(photoUri)) { bmp = android.graphics.BitmapFactory.decodeStream(in, null, o2); }
+                if (bmp == null) continue;
+                Text t = com.google.android.gms.tasks.Tasks.await(rec.process(InputImage.fromBitmap(bmp, rot)));
+                int bi = 0;
+                for (Text.TextBlock b : t.getTextBlocks()) {
+                    for (Text.Line l : b.getLines()) {
+                        try {
+                            Rect r = l.getBoundingBox();
+                            JSONObject o = new JSONObject();
+                            o.put("t", l.getText());
+                            o.put("h", r == null ? 0 : r.height() * sample);
+                            o.put("x", r == null ? 0 : r.left * sample);
+                            o.put("y", r == null ? 0 : r.top * sample);
+                            o.put("b", pass * 1000 + bi);
+                            o.put("p", pass);
+                            float c = l.getConfidence();
+                            o.put("c", Float.isNaN(c) ? 1 : c);
+                            arr.put(o);
+                        } catch (Exception ignored) { }
+                    }
+                    bi++;
+                }
+                bmp.recycle();
+                pass++;
+            }
+        } catch (Exception e) {
+            // اگر روش بالا نشد، روش ساده
+            try {
+                Text t = com.google.android.gms.tasks.Tasks.await(TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+                        .process(InputImage.fromFilePath(this, photoUri)));
+                for (Text.TextBlock b : t.getTextBlocks()) for (Text.Line l : b.getLines()) arr.put(l.getText());
+            } catch (Exception ignored) { }
+        }
+        callJs("onNativeOcr", arr.toString());
+    }
 
     private final ActivityResultLauncher<String> cameraPermission =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
