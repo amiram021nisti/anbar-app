@@ -72,11 +72,65 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<Uri> takePhoto =
             registerForActivityResult(new ActivityResultContracts.TakePicture(), ok -> {
                 if (!ok || photoUri == null) { callJs("onNativeOcr", "[]"); return; }
-                new Thread(this::runOcr).start();
+                if (faMode) new Thread(this::runTess).start(); else new Thread(this::runOcr).start();
             });
 
     // متن عکس دو بار خوانده می‌شود: یک بار با کیفیت کامل (برای نوشته‌های ریز)
     // و یک بار کوچک‌شده (برای عددها و نوشته‌های خیلی درشت مثل 50K) و نتیجه‌ها ترکیب می‌شوند
+    private boolean faMode = false;
+
+    // خواندن متن فارسی با Tesseract (برای لیست‌های فارسی)
+    private void runTess() {
+        JSONArray arr = new JSONArray();
+        try {
+            File dir = new File(getFilesDir(), "tess");
+            File td = new File(dir, "tessdata");
+            td.mkdirs();
+            File f = new File(td, "fas.traineddata");
+            if (!f.exists() || f.length() < 1000) {
+                try (InputStream in = getAssets().open("tessdata/fas.traineddata");
+                     FileOutputStream out = new FileOutputStream(f)) {
+                    byte[] buf = new byte[65536];
+                    int n;
+                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                }
+            }
+            int rot = 0;
+            try (InputStream in = getContentResolver().openInputStream(photoUri)) {
+                android.media.ExifInterface ex = new android.media.ExifInterface(in);
+                int o = ex.getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, 1);
+                rot = o == 6 ? 90 : o == 3 ? 180 : o == 8 ? 270 : 0;
+            } catch (Exception ignored) { }
+            android.graphics.BitmapFactory.Options bo = new android.graphics.BitmapFactory.Options();
+            bo.inJustDecodeBounds = true;
+            try (InputStream in = getContentResolver().openInputStream(photoUri)) { android.graphics.BitmapFactory.decodeStream(in, null, bo); }
+            int full = Math.max(bo.outWidth, bo.outHeight), sample = 1;
+            while (full / (sample * 2) >= 2000) sample *= 2;
+            android.graphics.BitmapFactory.Options o2 = new android.graphics.BitmapFactory.Options();
+            o2.inSampleSize = sample;
+            android.graphics.Bitmap bmp;
+            try (InputStream in = getContentResolver().openInputStream(photoUri)) { bmp = android.graphics.BitmapFactory.decodeStream(in, null, o2); }
+            if (rot != 0) {
+                android.graphics.Matrix m = new android.graphics.Matrix();
+                m.postRotate(rot);
+                android.graphics.Bitmap r = android.graphics.Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), m, true);
+                bmp.recycle();
+                bmp = r;
+            }
+            com.googlecode.tesseract.android.TessBaseAPI tess = new com.googlecode.tesseract.android.TessBaseAPI();
+            if (!tess.init(dir.getAbsolutePath(), "fas")) throw new Exception("init");
+            tess.setPageSegMode(com.googlecode.tesseract.android.TessBaseAPI.PageSegMode.PSM_AUTO);
+            tess.setImage(bmp);
+            String txt = tess.getUTF8Text();
+            tess.recycle();
+            bmp.recycle();
+            if (txt != null) for (String line : txt.split("\n")) if (!line.trim().isEmpty()) arr.put(line.trim());
+        } catch (Throwable e) {
+            callJs("onNativeError", "خواندن متن فارسی انجام نشد");
+        }
+        callJs("onNativeOcr", arr.toString());
+    }
+
     private void runOcr() {
         JSONArray arr = new JSONArray();
         try {
@@ -250,7 +304,17 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public void ocrFa() {
+            faMode = true;
+            runOnUiThread(() -> {
+                if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) launchPhoto();
+                else cameraPermission.launch(Manifest.permission.CAMERA);
+            });
+        }
+
+        @JavascriptInterface
         public void ocr() {
+            faMode = false;
             runOnUiThread(() -> {
                 if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) launchPhoto();
                 else cameraPermission.launch(Manifest.permission.CAMERA);

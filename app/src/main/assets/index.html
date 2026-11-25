@@ -10,6 +10,8 @@
 :root{--bg:#f3f0e8;--card:#fffdf8;--ink:#1d2320;--mut:#6c736e;--line:#e3ddd0;--pri:#1d6b58;--pri2:#e1efe9;--red:#bb3a2c;--red2:#f9e4e0;--amb:#a86d14;--amb2:#fbefd9;--sh:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.04)}
 @media (prefers-color-scheme:dark){:root{--bg:#121514;--card:#1b1f1d;--ink:#eaeeeb;--mut:#97a19b;--line:#2b312e;--pri:#53b898;--pri2:#1c3830;--red:#ee7466;--red2:#3a2320;--amb:#e3ab52;--amb2:#382d1b;--sh:none}}
 [hidden]{display:none!important}
+/* بارکد، خواندن اسم با دوربین و نیکوتین حذف شده‌اند */
+#quickSell,#quickIn,.scan,#nicFilt,.nics,.nic{display:none!important}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:15px}
 body{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
@@ -76,7 +78,7 @@ h2{font-size:15px;margin:24px 2px 8px;font-weight:700}
 .mv .tag{font-size:11px;padding:3px 8px;border-radius:8px;flex:none}
 .tag.out{background:var(--amb2);color:var(--amb)}.tag.in{background:var(--pri2);color:var(--pri)}.tag.adj{background:var(--bg);color:var(--mut)}
 .mv .info{flex:1;min-width:0}
-.mv .info b{font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv .info b{font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:ltr;text-align:right}
 .mv .info small{color:var(--mut);font-size:12px}
 .mv .amt{text-align:left;font-size:13px;white-space:nowrap}
 .mv .amt small{display:block;color:var(--pri);font-size:11.5px}
@@ -102,6 +104,15 @@ h2{font-size:15px;margin:24px 2px 8px;font-weight:700}
 .sheet .acts button{flex:1;margin:0}
 .danger{color:var(--red)!important}
 .nic{display:inline-block;direction:ltr;font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:7px;background:var(--amb2);color:var(--amb);margin-inline-start:6px;vertical-align:2px}
+.wrow{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:8px}
+.wrow .info{flex:1;min-width:0}
+.wrow .info b{display:block}
+.wrow .info small{color:var(--mut);font-size:12px}
+.wq{display:flex;align-items:center;gap:6px}
+.wq button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-size:20px;cursor:pointer}
+.wq b{min-width:36px;text-align:center;font-size:19px;font-weight:800;color:var(--amb)}
+.wret{border:0;background:var(--pri2);color:var(--pri);border-radius:10px;padding:8px 10px;font-size:12.5px;font-weight:700;cursor:pointer;margin-top:6px}
+.tag.war{background:var(--amb2);color:var(--amb)}.tag.ret{background:var(--pri2);color:var(--pri)}
 .brow{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px}
 .brow.ok{border-color:var(--pri)}
 .brow.unsure{border-color:var(--amb);background:var(--amb2)}
@@ -169,14 +180,25 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
 <main>
   <!-- کالاها -->
   <section id="t-prod" class="on">
+    <div class="seg" id="ptabs" style="margin-bottom:10px">
+      <button data-v="stock" class="on in">موجودی انبار</button>
+      <button data-v="war" class="out">گارانتی <span id="warN"></span></button>
+    </div>
+    <div id="stockView">
     <div class="search">
-      <input class="inp" id="q" placeholder="جستجوی نام، کد یا دسته…" autocomplete="off">
+      <input class="inp" id="q" placeholder="جستجوی نام یا دسته…" autocomplete="off">
       <button class="scan" id="scanQ" aria-label="اسکن بارکد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg></button>
       <button class="chip" id="lowBtn">رو به اتمام</button>
     </div>
     <div class="filt" id="catFilt"></div>
     <div class="filt" id="nicFilt"></div>
     <div id="plist"></div>
+    </div>
+    <div id="warView" hidden>
+      <button class="big out" id="warAdd" style="margin-top:0">+ ارسال کالا به گارانتی</button>
+      <div class="note" id="warSum" style="margin:12px 4px 8px"></div>
+      <div id="wlist"></div>
+    </div>
   </section>
 
   <!-- فروش / ورود -->
@@ -186,12 +208,18 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
       <button data-k="in" class="in">خرید / ورود به انبار</button>
     </div>
     <button class="big out quick" id="quickSell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:22px;height:22px;vertical-align:-5px;margin-left:6px"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg><span>اسکن سریع فروش<small>اسکن ← نیکوتین ← تأیید</small></span></button>
-    <button class="btn2" id="paperBtn" hidden style="margin-top:10px;padding:14px">📝 ثبت فروش‌ها از روی لیست کاغذی (عکس)</button>
-    <button class="big quick" id="quickIn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:22px;height:22px;vertical-align:-5px;margin-left:6px"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg><span>ورود کالا با اسکن<small>مرحله ۱: اسم برند · مرحله ۲: بارکد</small></span></button>
+    <div id="paperBox" hidden>
+      <span class="lbl">📝 ثبت یکجای فروش‌ها از روی عکس لیست کاغذی</span>
+      <div class="row">
+        <button class="btn2" id="paperFa" style="margin:0;padding:14px">لیست فارسی</button>
+        <button class="btn2" id="paperBtn" style="margin:0;padding:14px">لیست انگلیسی</button>
+      </div>
+    </div>
     <div class="or">یا دستی ثبت کنید</div>
+    <button class="big quick" id="quickIn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:22px;height:22px;vertical-align:-5px;margin-left:6px"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg><span>ورود کالا با اسکن<small>مرحله ۱: اسم برند · مرحله ۲: بارکد</small></span></button>
     <span class="lbl">کالا</span>
     <div id="pickWrap">
-      <div class="fld"><input class="inp" id="pq" placeholder="نام یا کد کالا را بنویسید…" autocomplete="off"><button class="scan" id="scanS" aria-label="اسکن بارکد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg></button></div>
+      <div class="fld"><input class="inp" id="pq" placeholder="اسم کالا را بنویسید…" autocomplete="off"><button class="scan" id="scanS" aria-label="اسکن بارکد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg></button></div>
       <div class="card sugg" id="sugg" hidden></div>
     </div>
     <div class="card picked" id="picked" hidden></div>
@@ -243,11 +271,12 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
     <div class="grab"></div>
     <h3 id="pTitle">کالای جدید</h3>
     <span class="lbl">نام کالا *</span><input class="inp" id="f-name">
-    <span class="lbl">نیکوتین (mg) — اختیاری</span>
-    <input class="inp" id="f-nic" inputmode="decimal" placeholder="مثلاً 12" style="direction:ltr;text-align:right">
+    <input id="f-nic" hidden>
+    <span class="lbl">اسم فارسی (اختیاری — برای خواندن لیست فارسی)</span>
+    <input class="inp" id="f-fa" placeholder="مثلاً الفاخر لاش آیس">
     <div class="nics" data-for="f-nic"></div>
     <div class="row">
-      <div><span class="lbl">کد / بارکد</span><div class="fld"><input class="inp" id="f-code" inputmode="text"><button class="scan" id="scanF" aria-label="اسکن بارکد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg></button></div></div>
+      <div hidden><span class="lbl">کد / بارکد</span><div class="fld"><input class="inp" id="f-code" inputmode="text"><button class="scan" id="scanF" aria-label="اسکن بارکد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></svg></button></div></div>
       <div><span class="lbl">دسته‌بندی (کد)</span><input class="inp" id="f-cat" list="cats" placeholder="مثلاً E12" style="direction:ltr;text-align:right;text-transform:uppercase"></div>
     </div>
     <datalist id="cats"></datalist>
@@ -267,6 +296,7 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
     </div>
     <div class="acts" id="pExtra">
       <button class="btn2" id="pSell">ثبت فروش/ورود این کالا</button>
+      <button class="btn2" id="pWar">ارسال به گارانتی</button>
       <button class="btn2 danger" id="pDel">حذف کالا</button>
     </div>
     <button class="btn2" id="pCancel">انصراف</button>
@@ -284,6 +314,23 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
     <button class="big out" id="bOk">کم کردن از انبار</button>
     <button class="btn2" id="bRetake">📷 عکس دوباره</button>
     <button class="btn2" id="bCancel">انصراف</button>
+  </div>
+</div>
+
+<!-- ارسال به گارانتی -->
+<div class="ov" id="gov">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3>ارسال به گارانتی</h3>
+    <span class="lbl">کالا</span>
+    <select class="inp" id="gProd" style="direction:ltr"></select>
+    <span class="lbl">تعداد</span>
+    <div class="stepper"><button id="gPlus">+</button><input class="inp" id="gQty" inputmode="numeric"><button id="gMinus">−</button></div>
+    <label style="display:flex;gap:8px;align-items:center;margin:14px 4px 0;font-size:14px"><input type="checkbox" id="gDeduct" checked style="width:20px;height:20px"> از موجودی انبار هم کم شود</label>
+    <span class="lbl">توضیحات (اختیاری)</span>
+    <input class="inp" id="gNote" placeholder="مثلاً خرابی باتری، اسم مشتری…">
+    <button class="big out" id="gOk">ثبت در گارانتی</button>
+    <button class="btn2" id="gCancel">انصراف</button>
   </div>
 </div>
 
@@ -428,11 +475,11 @@ document.addEventListener('input', e => {
 });
 
 // ---------- داده ----------
-const S = {products:{}, days:{}, cloud:false, loaded:false};
+const S = {products:{}, days:{}, warranty:{}, cloud:false, loaded:false};
 let base = null;
 const LS = 'anbar-v1';
-function loadLocal(){ try { const o = JSON.parse(localStorage.getItem(LS) || '{}'); S.products = o.products || {}; S.days = o.days || {}; } catch(e){} }
-function saveLocal(){ if (S.cloud) return; try { localStorage.setItem(LS, JSON.stringify({products:S.products, days:S.days})); } catch(e){} }
+function loadLocal(){ try { const o = JSON.parse(localStorage.getItem(LS) || '{}'); S.products = o.products || {}; S.days = o.days || {}; S.warranty = o.warranty || {}; } catch(e){} }
+function saveLocal(){ if (S.cloud) return; try { localStorage.setItem(LS, JSON.stringify({products:S.products, days:S.days, warranty:S.warranty})); } catch(e){} }
 const chains = {};
 function write(path, fn){
   chains[path] = (chains[path] || Promise.resolve()).then(fn).catch(e => {
@@ -452,14 +499,24 @@ function putDay(day){
   const items = (S.days[day] || {items:[]}).items;
   if (S.cloud) write('m/'+day, () => base.collection('moves').doc(day).set({day, items})); else saveLocal();
 }
-const sign = k => k === 'out' ? -1 : 1;
+const sign = k => k === 'out' || k === 'war' ? -1 : 1;
+function putWarranty(){
+  if (S.cloud) write('meta/warranty', () => base.collection('meta').doc('warranty').set({items: S.warranty})); else saveLocal();
+}
+function warAdd(pid, n){
+  const w = S.warranty[pid] || {qty: 0, t: new Date().toISOString()};
+  const q = Math.max(0, (+w.qty || 0) + n);
+  const o = {...S.warranty};
+  if (q > 0) o[pid] = {...w, qty: q, t: new Date().toISOString()}; else delete o[pid];
+  S.warranty = o; putWarranty();
+}
 function addMove(m){
   const day = dayKey(new Date(m.t));
   const d = S.days[day] || {day, items:[]};
   S.days[day] = {day, items:[...d.items, m]};
   putDay(day);
   const p = S.products[m.pid];
-  if (p && m.kind !== 'adj') putProduct(m.pid, {...p, qty: (+p.qty || 0) + sign(m.kind) * m.qty});
+  if (p && m.kind !== 'adj' && !m.noStock) putProduct(m.pid, {...p, qty: (+p.qty || 0) + sign(m.kind) * m.qty});
 }
 function removeMove(day, id){
   const d = S.days[day]; if (!d) return;
@@ -467,7 +524,9 @@ function removeMove(day, id){
   S.days[day] = {day, items: d.items.filter(x => x.id !== id)};
   putDay(day);
   const p = S.products[m.pid];
-  if (p) putProduct(m.pid, {...p, qty: (+p.qty || 0) - sign(m.kind) * m.qty});
+  if (p && !m.noStock) putProduct(m.pid, {...p, qty: (+p.qty || 0) - sign(m.kind) * m.qty});
+  if (m.kind === 'war') warAdd(m.pid, -m.qty);
+  if (m.kind === 'ret') warAdd(m.pid, m.qty);
 }
 
 function setMode(m){
@@ -498,7 +557,7 @@ async function init(){
     const uid = user ? await user.id() : null;
     if (!db || !uid){ setMode('local'); return; }
     base = db.doc('data/users/' + uid + '/shop');
-    S.cloud = true; S.products = {}; S.days = {};
+    S.cloud = true; S.products = {}; S.days = {}; S.warranty = {};
     setMode('loading'); render();
     const timer = setTimeout(() => { if (!S.loaded) setMode('slow'); }, 10000);
     base.collection('products').onSnapshot(s => {
@@ -510,6 +569,7 @@ async function init(){
       const o = {}; s.docs.forEach(d => { const x = d.data(); o[d.id] = {day: x.day, items: [...(x.items || [])]}; });
       S.days = o; render();
     }, () => {});
+    base.collection('meta').doc('warranty').onSnapshot(d => { S.warranty = d.exists ? {...(d.data().items || {})} : {}; render(); }, () => {});
   } catch(e){ console.error(e); S.cloud = false; loadLocal(); setMode('local'); render(); }
 }
 
@@ -523,14 +583,13 @@ function allMoves(){
   return out.sort((a, b) => b.t.localeCompare(a.t));
 }
 
-function render(){ renderProducts(); renderMoves(); renderReport(); renderPicked(); }
+function render(){ renderProducts(); renderWarranty(); renderMoves(); renderReport(); renderPicked(); }
 
 function renderProducts(){
   renderNicFilter(); renderCatFilter();
   const q = $('#q').value.trim().toLowerCase();
   let list = sortedProducts().filter(([, p]) =>
     !q || [p.name, p.code, p.cat, p.nic ? p.nic + 'mg' : ''].some(v => (v || '').toLowerCase().includes(q.replace(/\s+mg/, 'mg'))));
-  if (nicSel !== null) list = list.filter(([, p]) => (p.nic || '') === nicSel);
   if (catSel !== null) list = list.filter(([, p]) => (p.cat || '') === catSel);
   if (onlyLow) list = list.filter(([, p]) => isLow(p));
   const lowN = Object.values(S.products).filter(isLow).length;
@@ -554,7 +613,7 @@ function renderMoves(){
   const el = $('#mlist');
   const days = Object.values(S.days).filter(d => d.items.length).sort((a, b) => b.day.localeCompare(a.day)).slice(0, 14);
   if (!days.length){ el.innerHTML = `<div class="empty">هنوز تراکنشی ثبت نشده.</div>`; return; }
-  const kn = {out: 'فروش', in: 'ورود', adj: 'اصلاح'};
+  const kn = {out: 'فروش', in: 'ورود', adj: 'اصلاح', war: 'گارانتی', ret: 'برگشت'};
   el.innerHTML = days.map(d => {
     const sum = d.items.filter(m => m.kind === 'out').reduce((s, m) => s + m.qty, 0);
     const inn = d.items.filter(m => m.kind === 'in').reduce((s, m) => s + m.qty, 0);
@@ -564,7 +623,7 @@ function renderMoves(){
         <span class="tag ${m.kind}">${kn[m.kind]}</span>
         <div class="info"><b>${S.products[m.pid] ? esc(S.products[m.pid].name) + nicTag(S.products[m.pid]) : esc(m.name || '—')}</b>
           <small>${hm(m.t)}${m.note ? ' · ' + esc(m.note) : ''}</small></div>
-        <div class="amt" style="font-size:16px;font-weight:800">${m.kind === 'out' ? '−' : m.qty < 0 ? '' : '+'}${F(m.qty)}</div>
+        <div class="amt" style="font-size:16px;font-weight:800">${m.kind === 'out' || m.kind === 'war' ? '−' : m.qty < 0 ? '' : '+'}${F(m.qty)}</div>
         <button class="x" data-del="${esc(d.day)}|${esc(m.id)}" aria-label="حذف">✕</button>
       </div>`).join('')}</div>`;
   }).join('');
@@ -585,7 +644,8 @@ function renderReport(){
     T('فروش امروز', st, 'hi') + T('ورود امروز', it, 'hi') +
     T('فروش ۳۰ روز اخیر', s30) + T('ورود ۳۰ روز اخیر', i30) +
     T('کل موجودی انبار', units) + T('تعداد کالاها', ps.length, '', 'قلم') +
-    T('تمام شده', zero, zero ? 'zero' : '', 'قلم') + T('رو به اتمام', lowN, '', 'قلم');
+    T('تمام شده', zero, zero ? 'zero' : '', 'قلم') + T('رو به اتمام', lowN, '', 'قلم') +
+    T('در گارانتی', Object.values(S.warranty).reduce((s, w) => s + (+w.qty || 0), 0));
   const low = sortedProducts().filter(([, p]) => isLow(p));
   $('#lowlist').innerHTML = low.length
     ? low.map(([id, p]) => `<div class="card prod" data-id="${esc(id)}"><div><div class="nm">${esc(p.name)}${nicTag(p)}</div><div class="meta">حداقل: ${F(p.min)}</div></div><div class="qty low"><b>${F(p.qty)}</b><span>${esc(p.unit || 'عدد')}</span></div></div>`).join('')
@@ -598,7 +658,7 @@ function go(t){
   tab = t;
   document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === t));
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  $('#fab').style.display = $('#fabSell').style.display = t === 't-prod' ? '' : 'none';
+  $('#fab').style.display = $('#fabSell').style.display = t === 't-prod' && pview === 'stock' ? '' : 'none';
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => go(b.dataset.t));
@@ -610,7 +670,7 @@ document.addEventListener('click', e => {
 
 // ---------- فرم کالا ----------
 let editId = null;
-const FIELDS = ['name', 'nic', 'code', 'cat', 'buy', 'sell', 'qty', 'unit', 'min', 'note'];
+const FIELDS = ['name', 'fa', 'nic', 'code', 'cat', 'buy', 'sell', 'qty', 'unit', 'min', 'note'];
 const NUMS = ['buy', 'sell', 'qty', 'min'];
 function openProduct(id = null){
   editId = id; const p = id ? S.products[id] : {};
@@ -622,7 +682,7 @@ function openProduct(id = null){
   if (!id) setTimeout(() => $('#f-name').focus(), 200);
 }
 const closeProduct = () => $('#pov').classList.remove('on');
-$('#fab').onclick = () => openWiz();
+$('#fab').onclick = () => openProduct();
 $('#pCancel').onclick = closeProduct;
 $('#pov').onclick = e => { if (e.target.id === 'pov') closeProduct(); };
 $('#pSave').onclick = () => {
@@ -780,6 +840,7 @@ window.onBack = () => {
   if ($('#dov').classList.contains('on')){ $('#dNo').hidden ? $('#dYes').click() : $('#dNo').click(); return true; }
   if ($('#pov').classList.contains('on')){ closeProduct(); return true; }
   if ($('#wov').classList.contains('on')){ closeWiz(); return true; }
+  if ($('#gov').classList.contains('on')){ closeWar(); return true; }
   if ($('#cov').classList.contains('on')){ closeCat(); return true; }
   if ($('#bov').classList.contains('on')){ closeBatch(); return true; }
   if ($('#sov').classList.contains('on')){ closeSale(true); return true; }
@@ -787,14 +848,14 @@ window.onBack = () => {
   return false;
 };
 $('#bkBtn').onclick = () => {
-  Android.share(JSON.stringify({app: 'anbar', v: 1, products: S.products, days: S.days}), `anbar-backup-${dayKey(new Date())}.json`);
+  Android.share(JSON.stringify({app: 'anbar', v: 1, products: S.products, days: S.days, warranty: S.warranty}), `anbar-backup-${dayKey(new Date())}.json`);
 };
 $('#rsBtn').onclick = () => Android.pickFile();
 window.onNativeFile = async txt => {
   let o; try { o = JSON.parse(txt); } catch(e){}
   if (!o || o.app !== 'anbar' || !o.products){ toast('این فایل پشتیبان برنامه نیست'); return; }
   if (!(await ask(`پشتیبان با ${F(Object.keys(o.products).length)} کالا پیدا شد.<br>اطلاعات فعلی با آن جایگزین شود؟`, 'جایگزین کن'))) return;
-  S.products = o.products; S.days = o.days || {}; saveLocal(); render(); toast('بازگردانی شد ✓');
+  S.products = o.products; S.days = o.days || {}; S.warranty = o.warranty || {}; saveLocal(); render(); toast('بازگردانی شد ✓');
 };
 
 // ---------- فروش سریع با بارکد ----------
@@ -845,7 +906,7 @@ $('#sOk').onclick = () => {
   if (window.Android && selling) setTimeout(() => { if (selling) scan(quickSell); }, 700);
 };
 $('#quickSell').onclick = () => { selling = true; scan(quickSell); };
-$('#fabSell').onclick = () => { go('t-move'); $('#kind button[data-k=out]').click(); $('#quickSell').click(); };
+$('#fabSell').onclick = () => { go('t-move'); $('#kind button[data-k=out]').click(); setTimeout(() => $('#pq').focus(), 150); };
 // اگر اسکنر بسته شد (دکمه‌ی برگشت)، فروش پشت‌سرهم تمام می‌شود
 const _ons = window.onNativeScan;
 window.onNativeScan = c => { if (!c){ selling = false; return; } _ons(c); };
@@ -1048,8 +1109,8 @@ $('#wSave').onclick = () => {
 // ---------- نیکوتین ----------
 const NIC_PRESETS = ['0','3','6','12','20','25','35','50'];
 function normNic(v){ v = String(v ?? '').trim(); if (!v) return ''; const n = num(v.replace(/mg/i, '').replace(',', '.')); return n || n === 0 ? String(n) : ''; }
-const nicTag = p => p && p.nic !== undefined && p.nic !== '' ? `<span class="nic">${esc(p.nic)}mg</span>` : '';
-const PN = p => p ? p.name + (p.nic ? ' ' + p.nic + 'mg' : '') : '';
+const nicTag = p => '';
+const PN = p => p ? p.name : '';
 function syncNics(){
   document.querySelectorAll('.nics[data-for]').forEach(box => {
     const inp = $('#' + box.dataset.for), cur = normNic(inp.value);
@@ -1092,7 +1153,7 @@ function shortName(x, cat){
   names.forEach(n => { while (pre && !n.startsWith(pre)) pre = pre.slice(0, -1); });
   pre = pre.slice(0, pre.lastIndexOf(' ') + 1);
   const s = names.length > 1 && pre && x.name.length > pre.length ? x.name.slice(pre.length) : x.name;
-  return s + (x.nic ? ' ' + x.nic + 'mg' : '');
+  return s;
 }
 const qcls = x => (+x.qty || 0) <= 0 ? 'zero' : isLow(x) ? 'low' : '';
 function catMini(pid){
@@ -1146,16 +1207,17 @@ $('#catFilt').onclick = e => {
 let ocrMode = 'name';
 const _onOcrName = window.onNativeOcr;
 window.onNativeOcr = txt => { if (ocrMode === 'list'){ ocrMode = 'name'; paperList(txt); } else _onOcrName(txt); };
-if (window.Android) $('#paperBtn').hidden = false;
+if (window.Android) $('#paperBox').hidden = false;
+$('#paperFa').onclick = () => { if (!Android.ocrFa){ toast('برای لیست فارسی، نسخه‌ی جدید برنامه را نصب کنید'); return; } ocrMode = 'list'; toast('از لیست عکس بگیرید — هر کالا در یک خط'); Android.ocrFa(); };
 $('#paperBtn').onclick = () => { ocrMode = 'list'; toast('از لیست عکس بگیرید — هر کالا در یک خط'); Android.ocr(); };
-const toks = t => String(t).toUpperCase().replace(/(\d)([A-Z])/g, '$1 $2').replace(/([A-Z])(\d)/g, '$1 $2').split(/[^A-Z0-9]+/).filter(Boolean);
+const toks = t => faToEn(String(t)).toUpperCase().replace(/(\d)([A-Z])/g, '$1 $2').replace(/([A-Z])(\d)/g, '$1 $2').split(/[^A-Z0-9]+/).filter(Boolean);
 function sim(a, b){ if (a === b) return 1; const d = lev(a, b); return d > 8 ? 0 : 1 - d / Math.max(a.length, b.length); }
 // یک خط نوشته را به (کالا، نیکوتین، تعداد) تبدیل می‌کند
 function parseLine(line){
-  let t = ' ' + String(line).replace(/[|]/g, '1') + ' ';
+  let t = ' ' + faDigits(String(line)).replace(/[|]/g, '1').replace(/عدد|تا|دانه/g, ' ') + ' ';
   let nic = null, qty = 1;
-  const mg = t.match(/(\d+(?:[.,]\d+)?)\s*mg/i); if (mg){ nic = normNic(mg[1]); t = t.replace(mg[0], ' '); }
-  const q1 = t.match(/(?:^|\s)(?:x\s*|×\s*|\*\s*)?(\d{1,3})\s*(?:x|×|pcs|pc|عدد)?\s*$/i) || t.match(/^\s*(\d{1,3})\s*(?:x|×|-|\.|\))?\s+(?=[a-z])/i);
+  const mg = t.match(/(\d+(?:[.,]\d+)?)\s*(mg|میلی?)/i); if (mg){ t = t.replace(mg[0], ' '); }
+  const q1 = t.match(/(?:^|\s)(?:x\s*|×\s*|\*\s*)?(\d{1,3})\s*(?:x|×|pcs|pc|عدد)?\s*$/i) || t.match(/^\s*(\d{1,3})\s*(?:x|×|-|\.|\))?\s+(?=\S)/i);
   if (q1){ qty = +q1[1] || 1; t = t.replace(q1[0], ' '); }
   return {q: t.replace(/[-–:=.,()]+/g, ' ').replace(/\s+/g, ' ').trim(), nic, qty};
 }
@@ -1163,13 +1225,14 @@ function rankProducts(q, nic){
   const qt = toks(q).filter(w => w.length >= 2 && !/^\d{1,3}$/.test(w));
   if (!qt.length) return [];
   return sortedProducts().map(([id, p]) => {
-    const pt = toks(p.name + ' ' + (p.cat || ''));
+    const pt = toks(p.name + ' ' + (p.cat || '') + ' ' + (p.fa || '') + ' ' + (p.alias || []).join(' '));
     let sc = 0;
     qt.forEach(w => { let b = 0; pt.forEach(x => { b = Math.max(b, sim(w, x)); }); if (b >= 0.55) sc += b; });
     sc = sc / qt.length;
     const extra = pt.filter(x => !qt.some(w => sim(w, x) >= 0.55)).length;
     sc -= extra * 0.01;
-    if (nic !== null && nic !== ''){ sc += (p.nic || '') === nic ? 0.15 : -0.2; }
+    const qn = String(q).trim().replace(/\s+/g, ' ');
+    if ((p.alias || []).includes(qn) || (p.fa && p.fa.trim() === qn)) sc += 0.3;
     return {id, sc};
   }).sort((a, b) => b.sc - a.sc);
 }
@@ -1184,7 +1247,7 @@ function paperList(txt){
     const r = rows.find(r => Math.abs(r.y - o.y) < Math.max(Math.min(r.h, o.h), 1) * 0.6);
     if (r){ r.parts.push(o); } else rows.push({y: o.y, h: o.h || 10, parts: [o]});
   });
-  const lines = rows.map(r => r.parts.sort((a, b) => a.x - b.x).map(o => o.t).join(' ').trim()).filter(l => /[a-z]{2,}/i.test(l));
+  const lines = rows.map(r => r.parts.sort((a, b) => a.x - b.x).map(o => o.t).join(' ').trim()).filter(l => /[a-z]{2,}|[\u0600-\u06FF]{2,}/i.test(l));
   if (!lines.length){ toast('نوشته‌ای خوانده نشد؛ نزدیک‌تر و با نور بهتر عکس بگیرید'); return; }
   batch = lines.map(l => {
     const pr = parseLine(l), rk = rankProducts(pr.q, pr.nic);
@@ -1246,10 +1309,103 @@ $('#bOk').onclick = async () => {
   rows.forEach(r => {
     const p = S.products[r.id];
     addMove({id: newId(), pid: r.id, name: p.name, kind: 'out', qty: r.qty, price: +p.sell || 0, cost: +p.buy || 0, t, note: 'لیست کاغذی'});
+    // نوشته‌ی فارسی این ردیف یاد گرفته می‌شود تا دفعه‌ی بعد خودکار پیدا شود
+    const q = parseLine(r.raw || '').q.trim();
+    if (q && /[\u0600-\u06FF]/.test(q)){
+      const cur = S.products[r.id], al = cur.alias || [];
+      if (!al.includes(q)) putProduct(r.id, {...cur, alias: [...al, q].slice(-12)});
+    }
   });
   closeBatch(); render();
   toast(`✓ ${F(rows.length)} کالا از انبار کم شد`);
 };
+
+// ---------- اعداد و کلمه‌های فارسی ----------
+function faDigits(t){ return String(t).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)); }
+// کلمه‌های رایج فارسی برای طعم‌ها و برندها ← انگلیسی
+const FA_EN = {
+  'آیس': 'ICE', 'ایس': 'ICE', 'یخ': 'ICE', 'یخی': 'ICE', 'انگور': 'GRAPE', 'نعناع': 'MINT', 'نعنا': 'MINT', 'مینت': 'MINT', 'هندوانه': 'WATERMELON',
+  'هندونه': 'WATERMELON', 'توت‌فرنگی': 'STRAWBERRY', 'توتفرنگی': 'STRAWBERRY', 'استرابری': 'STRAWBERRY', 'انبه': 'MANGO', 'منگو': 'MANGO', 'بلوبری': 'BLUEBERRY',
+  'گیلاس': 'CHERRY', 'آلبالو': 'CHERRY', 'چری': 'CHERRY', 'هلو': 'PEACH', 'پیچ': 'PEACH', 'آناناس': 'PINEAPPLE', 'پاین': 'PINEAPPLE', 'پرتقال': 'ORANGE', 'پرتغال': 'ORANGE', 'اورنج': 'ORANGE',
+  'لیمو': 'LEMON', 'لیموناد': 'LEMONADE', 'سیب': 'APPLE', 'اپل': 'APPLE', 'موز': 'BANANA', 'کیوی': 'KIWI', 'تنباکو': 'TOBACCO', 'توباکو': 'TOBACCO', 'بادام': 'ALMOND',
+  'آدامس': 'GUM', 'لاش': 'LUSH', 'الفاخر': 'AL FAKHER', 'فاخر': 'FAKHER', 'کراون': 'CROWN', 'مزایا': 'MAZAYA', 'آرتری': 'ARTERY', 'بلو': 'BLUE', 'آبی': 'BLUE', 'کولا': 'COLA',
+  'گواوا': 'GUAVA', 'لیچی': 'LYCHEE', 'طالبی': 'MELON', 'ملون': 'MELON', 'پشن': 'PASSION', 'قهوه': 'COFFEE', 'وانیل': 'VANILLA', 'تمشک': 'RASPBERRY', 'رزبری': 'RASPBERRY',
+  'بری': 'BERRY', 'انرژی': 'ENERGY', 'دابل': 'DOUBLE', 'گرین': 'GREEN', 'سبز': 'GREEN', 'پینک': 'PINK', 'صورتی': 'PINK', 'میکس': 'MIXED', 'ابری': 'CLOUD', 'کلاد': 'CLOUD', 'آئورا': 'AURA',
+  'اورا': 'AURA', 'مگا': 'MEGA', 'مکس': 'MAX', 'پرو': 'PRO', 'بار': 'BAR', 'الف': 'ELF', 'السی': 'LUSH', 'فیوژن': 'FUSION', 'نارگیل': 'COCONUT', 'گلابی': 'PEAR', 'انار': 'POMEGRANATE',
+  'شاتوت': 'BLACKBERRY', 'ترش': 'SOUR', 'کارامل': 'CARAMEL', 'شکلات': 'CHOCOLATE', 'خامه': 'CREAM', 'یاکولت': 'YAKULT'
+};
+// حروف فارسی ← حروف انگلیسی (برای کلمه‌هایی که در فهرست نیستند)
+const FA_LAT = {'ا':'a','آ':'a','ب':'b','پ':'p','ت':'t','ث':'s','ج':'j','چ':'ch','ح':'h','خ':'kh','د':'d','ذ':'z','ر':'r','ز':'z','ژ':'zh','س':'s','ش':'sh','ص':'s','ض':'z','ط':'t','ظ':'z','ع':'','غ':'gh','ف':'f','ق':'gh','ک':'k','ك':'k','گ':'g','ل':'l','م':'m','ن':'n','و':'u','ه':'h','ی':'i','ي':'i','ئ':'i','ء':'','ة':'h'};
+function faToEn(t){
+  t = faDigits(t).replace(/‌/g, '');
+  return t.split(/(\s+)/).map(w => {
+    if (!/[؀-ۿ]/.test(w)) return w;
+    if (FA_EN[w]) return FA_EN[w];
+    return w + ' ' + [...w].map(c => FA_LAT[c] ?? c).join('');
+  }).join('');
+}
+
+// ---------- گارانتی ----------
+let pview = 'stock';
+$('#ptabs').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  pview = b.dataset.v;
+  $('#ptabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  $('#stockView').hidden = pview !== 'stock'; $('#warView').hidden = pview !== 'war';
+  $('#fab').style.display = $('#fabSell').style.display = pview === 'stock' ? '' : 'none';
+};
+function renderWarranty(){
+  const ids = Object.keys(S.warranty).filter(id => (+S.warranty[id].qty || 0) > 0);
+  const total = ids.reduce((s, id) => s + (+S.warranty[id].qty || 0), 0);
+  $('#warN').textContent = total ? '(' + F(total) + ')' : '';
+  $('#warSum').textContent = ids.length ? `${F(ids.length)} کالا، جمعاً ${F(total)} عدد در گارانتی است. با + و − تعداد را خودتان تنظیم کنید.` : '';
+  $('#wlist').innerHTML = ids.length ? ids.sort((a, b) => (S.warranty[b].t || '').localeCompare(S.warranty[a].t || '')).map(id => {
+    const w = S.warranty[id], p = S.products[id];
+    return `<div class="card wrow" data-id="${esc(id)}">
+      <div class="info"><b>${p ? esc(p.name) : '(کالای حذف‌شده)'}</b>
+        <small>${p && p.cat ? '<span class="catb">' + esc(p.cat) + '</span>' : ''}${w.t ? jLong(new Date(w.t)) : ''}${w.note ? ' · ' + esc(w.note) : ''}</small>
+        ${p ? '<div><button class="wret" data-a="ret">↩ برگشت یک عدد به انبار</button></div>' : ''}</div>
+      <div class="wq"><button data-a="plus">+</button><b>${F(w.qty)}</b><button data-a="minus">−</button></div></div>`;
+  }).join('') : `<div class="empty"><b>چیزی در گارانتی نیست</b>با دکمه‌ی بالا کالایی که برای گارانتی رفته را ثبت کنید.</div>`;
+}
+$('#wlist').onclick = async e => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const id = b.closest('.wrow').dataset.id, a = b.dataset.a;
+  if (a === 'plus') warAdd(id, 1);
+  if (a === 'minus'){
+    if ((+S.warranty[id].qty || 0) <= 1 && !(await ask('این کالا از لیست گارانتی حذف شود؟', 'حذف'))) return;
+    warAdd(id, -1);
+  }
+  if (a === 'ret'){
+    const p = S.products[id];
+    addMove({id: newId(), pid: id, name: p.name, kind: 'ret', qty: 1, price: 0, cost: 0, t: new Date().toISOString(), note: 'برگشت از گارانتی'});
+    warAdd(id, -1); toast('یک عدد به موجودی انبار برگشت');
+  }
+  render();
+};
+function openWar(pid = ''){
+  $('#gProd').innerHTML = '<option value="">— کالا را انتخاب کنید —</option>' + sortedProducts().map(([id, p]) =>
+    `<option value="${esc(id)}" ${id === pid ? 'selected' : ''}>${esc(p.name)}${p.cat ? ' · ' + esc(p.cat) : ''} (${F(p.qty)})</option>`).join('');
+  $('#gQty').value = F(1); $('#gNote').value = ''; $('#gDeduct').checked = true;
+  $('#gov').classList.add('on');
+}
+const closeWar = () => $('#gov').classList.remove('on');
+$('#warAdd').onclick = () => openWar();
+$('#gCancel').onclick = closeWar;
+$('#gov').onclick = e => { if (e.target.id === 'gov') closeWar(); };
+$('#gPlus').onclick = () => { $('#gQty').value = F(num($('#gQty').value) + 1); };
+$('#gMinus').onclick = () => { $('#gQty').value = F(Math.max(1, num($('#gQty').value) - 1)); };
+$('#gOk').onclick = () => {
+  const id = $('#gProd').value, q = num($('#gQty').value);
+  if (!id){ toast('کالا را انتخاب کنید'); return; }
+  if (q <= 0){ toast('تعداد را وارد کنید'); return; }
+  const p = S.products[id], note = $('#gNote').value.trim();
+  addMove({id: newId(), pid: id, name: p.name, kind: 'war', qty: q, price: 0, cost: 0, t: new Date().toISOString(), note: note || 'ارسال به گارانتی', noStock: !$('#gDeduct').checked});
+  warAdd(id, q);
+  if (note){ S.warranty = {...S.warranty, [id]: {...S.warranty[id], note}}; putWarranty(); }
+  closeWar(); render(); toast(`✓ ${F(q)} عدد «${p.name}» در گارانتی ثبت شد`);
+};
+$('#pWar').onclick = () => { const id = editId; closeProduct(); go('t-prod'); $('#ptabs [data-v=war]').click(); openWar(id); };
 
 go('t-prod');
 init();
