@@ -45,6 +45,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private WebView web;
+    private boolean faMode = false;
 
     private final ActivityResultLauncher<ScanOptions> scanner =
             registerForActivityResult(new ScanContract(), result -> {
@@ -77,8 +78,6 @@ public class MainActivity extends AppCompatActivity {
 
     // متن عکس دو بار خوانده می‌شود: یک بار با کیفیت کامل (برای نوشته‌های ریز)
     // و یک بار کوچک‌شده (برای عددها و نوشته‌های خیلی درشت مثل 50K) و نتیجه‌ها ترکیب می‌شوند
-    private boolean faMode = false;
-
     // خواندن متن فارسی با Tesseract (برای لیست‌های فارسی)
     private void runTess() {
         JSONArray arr = new JSONArray();
