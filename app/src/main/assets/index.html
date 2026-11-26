@@ -10,6 +10,12 @@
 :root{--bg:#f3f0e8;--card:#fffdf8;--ink:#1d2320;--mut:#6c736e;--line:#e3ddd0;--pri:#1d6b58;--pri2:#e1efe9;--red:#bb3a2c;--red2:#f9e4e0;--amb:#a86d14;--amb2:#fbefd9;--sh:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.04)}
 @media (prefers-color-scheme:dark){:root{--bg:#121514;--card:#1b1f1d;--ink:#eaeeeb;--mut:#97a19b;--line:#2b312e;--pri:#53b898;--pri2:#1c3830;--red:#ee7466;--red2:#3a2320;--amb:#e3ab52;--amb2:#382d1b;--sh:none}}
 [hidden]{display:none!important}
+.whbar{max-width:720px;margin:0 auto;padding:0 14px 10px}
+#whSeg button{font-size:14.5px}
+#whSeg button.on{background:var(--pri);color:#fff}
+body.farsude #whSeg button.on{background:#6b4fa0;color:#fff}
+body.farsude header h1{color:#6b4fa0}
+@media (prefers-color-scheme:dark){body.farsude #whSeg button.on{background:#a58ad8;color:#14121a}body.farsude header h1{color:#b9a2e6}}
 /* بارکد، خواندن اسم با دوربین و نیکوتین حذف شده‌اند */
 #quickSell,#quickIn,.scan,#nicFilt,.nics,.nic{display:none!important}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -173,9 +179,15 @@ textarea.inp{min-height:160px;direction:ltr;font-size:12px}
 </head>
 <body>
 <header>
-  <h1>انبار مغازه<small id="today"></small></h1>
+  <h1><span id="whTitle">انبار مغازه</span><small id="today"></small></h1>
   <span class="pill warn" id="mode">در حال اتصال…</span>
 </header>
+<div class="whbar">
+  <div class="seg" id="whSeg">
+    <button data-w="shop" class="on">🏪 انبار مغازه</button>
+    <button data-w="farsude">📦 انبار فرسوده</button>
+  </div>
+</div>
 
 <main>
   <!-- کالاها -->
@@ -477,9 +489,12 @@ document.addEventListener('input', e => {
 // ---------- داده ----------
 const S = {products:{}, days:{}, warranty:{}, cloud:false, loaded:false};
 let base = null;
-const LS = 'anbar-v1';
-function loadLocal(){ try { const o = JSON.parse(localStorage.getItem(LS) || '{}'); S.products = o.products || {}; S.days = o.days || {}; S.warranty = o.warranty || {}; } catch(e){} }
-function saveLocal(){ if (S.cloud) return; try { localStorage.setItem(LS, JSON.stringify({products:S.products, days:S.days, warranty:S.warranty})); } catch(e){} }
+const WH_NAMES = {shop: 'انبار مغازه', farsude: 'انبار فرسوده'};
+let WH = 'shop';
+try { const w = localStorage.getItem('anbar-wh'); if (WH_NAMES[w]) WH = w; } catch(e){}
+const lsKey = w => w === 'shop' ? 'anbar-v1' : 'anbar-v1-' + w;
+function loadLocal(){ S.products = {}; S.days = {}; S.warranty = {}; try { const o = JSON.parse(localStorage.getItem(lsKey(WH)) || '{}'); S.products = o.products || {}; S.days = o.days || {}; S.warranty = o.warranty || {}; } catch(e){} }
+function saveLocal(){ if (S.cloud) return; try { localStorage.setItem(lsKey(WH), JSON.stringify({products:S.products, days:S.days, warranty:S.warranty})); } catch(e){} }
 const chains = {};
 function write(path, fn){
   chains[path] = (chains[path] || Promise.resolve()).then(fn).catch(e => {
@@ -547,7 +562,48 @@ function setMode(m){
     : 'اطلاعات به‌صورت خصوصی در حساب Claude شما ذخیره می‌شود و روی گوشی و کامپیوتر یکی است. فقط خود شما آن را می‌بینید.';
 }
 
+let cloudDb = null, cloudUid = null, unsubs = [];
+function subscribeCloud(){
+  unsubs.forEach(u => { try { u(); } catch(e){} }); unsubs = [];
+  const w = WH;
+  base = cloudDb.doc('data/users/' + cloudUid + '/' + w);
+  S.products = {}; S.days = {}; S.warranty = {}; S.loaded = false;
+  setMode('loading'); render();
+  const timer = setTimeout(() => { if (!S.loaded && WH === w) setMode('slow'); }, 10000);
+  unsubs.push(base.collection('products').onSnapshot(s => {
+    if (WH !== w) return;
+    const o = {}; s.docs.forEach(d => o[d.id] = d.data()); S.products = o;
+    if (!s.metadata.fromCache && !S.loaded){ S.loaded = true; clearTimeout(timer); setMode('cloud'); }
+    render();
+  }, () => { clearTimeout(timer); setMode('err'); }));
+  unsubs.push(base.collection('moves').orderBy('day', 'desc').limit(120).onSnapshot(s => {
+    if (WH !== w) return;
+    const o = {}; s.docs.forEach(d => { const x = d.data(); o[d.id] = {day: x.day, items: [...(x.items || [])]}; });
+    S.days = o; render();
+  }, () => {}));
+  unsubs.push(base.collection('meta').doc('warranty').onSnapshot(d => { if (WH !== w) return; S.warranty = d.exists ? {...(d.data().items || {})} : {}; render(); }, () => {}));
+}
+function applyWhUI(){
+  document.body.classList.toggle('farsude', WH === 'farsude');
+  $('#whTitle').textContent = WH_NAMES[WH];
+  document.title = WH_NAMES[WH];
+  $('#whSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.w === WH));
+}
+function switchWh(w){
+  if (w === WH || !WH_NAMES[w]) return;
+  WH = w;
+  try { localStorage.setItem('anbar-wh', w); } catch(e){}
+  // هر چیزی که باز است بسته و پاک می‌شود تا قاطی نشود
+  document.querySelectorAll('.ov.on').forEach(o => o.classList.remove('on'));
+  pickedId = null; editId = null; catSel = null; batch = [];
+  $('#q').value = ''; $('#pq').value = ''; $('#sugg').hidden = true;
+  applyWhUI();
+  if (S.cloud && cloudDb) subscribeCloud(); else { loadLocal(); render(); }
+  go('t-prod');
+  toast('رفتید به ' + WH_NAMES[w]);
+}
 async function init(){
+  applyWhUI();
   $('#today').textContent = 'امروز ' + jLong(new Date());
   loadLocal(); render();
   if (window.Android){ setMode('phone'); $('#appOnly').hidden = false; return; }
@@ -556,20 +612,9 @@ async function init(){
     const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
     const uid = user ? await user.id() : null;
     if (!db || !uid){ setMode('local'); return; }
-    base = db.doc('data/users/' + uid + '/shop');
-    S.cloud = true; S.products = {}; S.days = {}; S.warranty = {};
-    setMode('loading'); render();
-    const timer = setTimeout(() => { if (!S.loaded) setMode('slow'); }, 10000);
-    base.collection('products').onSnapshot(s => {
-      const o = {}; s.docs.forEach(d => o[d.id] = d.data()); S.products = o;
-      if (!s.metadata.fromCache && !S.loaded){ S.loaded = true; clearTimeout(timer); setMode('cloud'); }
-      render();
-    }, () => { clearTimeout(timer); setMode('err'); });
-    base.collection('moves').orderBy('day', 'desc').limit(120).onSnapshot(s => {
-      const o = {}; s.docs.forEach(d => { const x = d.data(); o[d.id] = {day: x.day, items: [...(x.items || [])]}; });
-      S.days = o; render();
-    }, () => {});
-    base.collection('meta').doc('warranty').onSnapshot(d => { S.warranty = d.exists ? {...(d.data().items || {})} : {}; render(); }, () => {});
+    cloudDb = db; cloudUid = uid;
+    S.cloud = true;
+    subscribeCloud();
   } catch(e){ console.error(e); S.cloud = false; loadLocal(); setMode('local'); render(); }
 }
 
@@ -848,13 +893,23 @@ window.onBack = () => {
   return false;
 };
 $('#bkBtn').onclick = () => {
-  Android.share(JSON.stringify({app: 'anbar', v: 1, products: S.products, days: S.days, warranty: S.warranty}), `anbar-backup-${dayKey(new Date())}.json`);
+  saveLocal();
+  const all = {};
+  Object.keys(WH_NAMES).forEach(w => { try { all[w] = JSON.parse(localStorage.getItem(lsKey(w)) || '{}'); } catch(e){ all[w] = {}; } });
+  Android.share(JSON.stringify({app: 'anbar', v: 2, warehouses: all}), `anbar-backup-${dayKey(new Date())}.json`);
 };
 $('#rsBtn').onclick = () => Android.pickFile();
 window.onNativeFile = async txt => {
   let o; try { o = JSON.parse(txt); } catch(e){}
-  if (!o || o.app !== 'anbar' || !o.products){ toast('این فایل پشتیبان برنامه نیست'); return; }
-  if (!(await ask(`پشتیبان با ${F(Object.keys(o.products).length)} کالا پیدا شد.<br>اطلاعات فعلی با آن جایگزین شود؟`, 'جایگزین کن'))) return;
+  if (!o || o.app !== 'anbar' || !(o.products || o.warehouses)){ toast('این فایل پشتیبان برنامه نیست'); return; }
+  if (o.warehouses){
+    const desc = Object.keys(WH_NAMES).map(w => `${WH_NAMES[w]}: ${F(Object.keys((o.warehouses[w] || {}).products || {}).length)} کالا`).join('<br>');
+    if (!(await ask(`پشتیبان پیدا شد:<br>${desc}<br>اطلاعات هر دو انبار با آن جایگزین شود؟`, 'جایگزین کن'))) return;
+    Object.keys(WH_NAMES).forEach(w => { if (o.warehouses[w]) try { localStorage.setItem(lsKey(w), JSON.stringify(o.warehouses[w])); } catch(e){} });
+    loadLocal(); render(); toast('بازگردانی شد ✓'); return;
+  }
+  // پشتیبان قدیمی (فقط یک انبار) → در انبار فعلی
+  if (!(await ask(`پشتیبان با ${F(Object.keys(o.products).length)} کالا پیدا شد.<br>اطلاعات «${WH_NAMES[WH]}» با آن جایگزین شود؟`, 'جایگزین کن'))) return;
   S.products = o.products; S.days = o.days || {}; S.warranty = o.warranty || {}; saveLocal(); render(); toast('بازگردانی شد ✓');
 };
 
@@ -1406,6 +1461,8 @@ $('#gOk').onclick = () => {
   closeWar(); render(); toast(`✓ ${F(q)} عدد «${p.name}» در گارانتی ثبت شد`);
 };
 $('#pWar').onclick = () => { const id = editId; closeProduct(); go('t-prod'); $('#ptabs [data-v=war]').click(); openWar(id); };
+
+$('#whSeg').onclick = e => { const b = e.target.closest('button'); if (b) switchWh(b.dataset.w); };
 
 go('t-prod');
 init();
