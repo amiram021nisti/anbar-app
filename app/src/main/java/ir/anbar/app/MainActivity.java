@@ -302,6 +302,21 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
+        // چاپ یا ذخیره‌ی PDF فاکتور و گزارش (از طریق پنجره‌ی چاپ اندروید)
+        @JavascriptInterface
+        public void print(String name) {
+            runOnUiThread(() -> {
+                try {
+                    String jn = (name == null || name.isEmpty()) ? "faktor" : name;
+                    android.print.PrintManager pm = (android.print.PrintManager) getSystemService(PRINT_SERVICE);
+                    pm.print(jn, web.createPrintDocumentAdapter(jn),
+                            new android.print.PrintAttributes.Builder().setMediaSize(android.print.PrintAttributes.MediaSize.ISO_A4).build());
+                } catch (Exception e) {
+                    callJs("onNativeError", "چاپ انجام نشد");
+                }
+            });
+        }
+
         @JavascriptInterface
         public void ocrFa() {
             faMode = true;
