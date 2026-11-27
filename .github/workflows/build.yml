@@ -30,19 +30,25 @@ jobs:
           ls -la app/src/main/assets/tessdata
 
       - name: Build
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: gradle :app:assembleRelease :amir:assembleRelease --no-daemon --stacktrace
 
       - name: Rename
-        run: cp app/build/outputs/apk/release/app-release.apk anbar.apk
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk anbar.apk
+          cp amir/build/outputs/apk/release/amir-release.apk amir.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: anbar-apk
-          path: anbar.apk
+          path: |
+            anbar.apk
+            amir.apk
 
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
           name: نسخه ${{ github.run_number }}
-          files: anbar.apk
+          files: |
+            anbar.apk
+            amir.apk
           make_latest: true
